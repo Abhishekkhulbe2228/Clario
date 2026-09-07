@@ -8,13 +8,13 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 class Settings(BaseSettings):
     app_name: str = "Clario"
     app_env: str = "development"
-    openai_api_key: str = ""
+    groq_api_key: str = ""
     tavily_api_key: str = ""
     pinecone_api_key: str = ""
     pinecone_index_name: str = "hr-policy-rag"
     pinecone_namespace: str = "company-hr-kb"
-    embedding_model: str = "text-embedding-3-small"
-    openai_model: str = "gpt-4o-mini"
+    embedding_model: str = "all-MiniLM-L6-v2"
+    groq_model: str = "openai/gpt-oss-20b"
     top_k: int = 4
     max_retries: int = 1
     admin_api_key: str = "change-me-in-production"
