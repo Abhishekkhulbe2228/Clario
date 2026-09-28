@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --sidebar-width: 260px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #c7d2fe transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 2px; }
+  .dark .scrollbar-thin { scrollbar-color: #3730a3 transparent; }
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb { background: #3730a3; }
+}
+
+@layer components {
+  .prose-clario {
+    @apply text-gray-800 dark:text-gray-200 leading-relaxed;
+  }
+  .prose-clario h1 { @apply text-lg font-semibold text-gray-900 dark:text-white mt-4 mb-2; }
+  .prose-clario h2 { @apply text-base font-semibold text-gray-900 dark:text-white mt-3 mb-1.5; }
+  .prose-clario h3 { @apply text-sm font-semibold text-gray-900 dark:text-white mt-2 mb-1; }
+  .prose-clario p { @apply mb-3 last:mb-0; }
+  .prose-clario ul { @apply list-disc pl-5 mb-3 space-y-1; }
+  .prose-clario ol { @apply list-decimal pl-5 mb-3 space-y-1; }
+  .prose-clario li { @apply text-gray-700 dark:text-gray-300; }
+  .prose-clario strong { @apply font-semibold text-gray-900 dark:text-white; }
+  .prose-clario code { @apply bg-gray-100 dark:bg-gray-800 text-brand-700 dark:text-brand-300 px-1.5 py-0.5 rounded text-sm font-mono; }
+  .prose-clario pre { @apply bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-xl overflow-x-auto mb-3 text-sm; }
+  .prose-clario pre code { @apply bg-transparent text-gray-100 p-0; }
+  .prose-clario table { @apply w-full border-collapse mb-3 text-sm; }
+  .prose-clario th { @apply bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium px-3 py-2 text-left border border-gray-200 dark:border-gray-700; }
+  .prose-clario td { @apply px-3 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300; }
+  .prose-clario a { @apply text-brand-600 dark:text-brand-400 hover:underline; }
+  .prose-clario blockquote { @apply border-l-4 border-brand-300 pl-4 italic text-gray-600 dark:text-gray-400 mb-3; }
+  .prose-clario hr { @apply border-gray-200 dark:border-gray-700 my-3; }
+}
