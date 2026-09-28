@@ -1,33 +1,14 @@
 import json
-import sqlite3
-from datetime import datetime, timezone
-from app.core.config import get_settings
 
-
-settings = get_settings()
+from app.core.database import Base, SessionLocal, engine
+from app.models import QueryAudit
 
 
 def init_db() -> None:
-    con = sqlite3.connect(settings.audit_db_path)
-    con.execute(
-        """CREATE TABLE IF NOT EXISTS query_audit (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            created_at TEXT NOT NULL,
-            question TEXT NOT NULL,
-            source_used TEXT NOT NULL,
-            trace_json TEXT NOT NULL
-        )"""
-    )
-    con.commit()
-    con.close()
+    Base.metadata.create_all(bind=engine)
 
 
-
-def write_audit(question: str, source_used: str, trace: list[str]) -> None:
-    con = sqlite3.connect(settings.audit_db_path)
-    con.execute(
-        "INSERT INTO query_audit(created_at, question, source_used, trace_json) VALUES (?, ?, ?, ?)",
-        (datetime.now(timezone.utc).isoformat(), question, source_used, json.dumps(trace)),
-    )
-    con.commit()
-    con.close()
+def write_audit(question: str, source_used: str, trace: list[str], user_id: int | None = None) -> None:
+    with SessionLocal() as db:
+        db.add(QueryAudit(question=question, source_used=source_used, trace_json=json.dumps(trace), user_id=user_id))
+        db.commit()

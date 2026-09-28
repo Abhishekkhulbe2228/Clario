@@ -104,6 +104,9 @@ def get_retriever():
 
 
 
-def add_documents(chunks):
-    store = get_vectorstore()
-    return store.add_documents(chunks)
+def add_documents(chunks, ids: list[str] | None = None):
+    return get_vectorstore().add_documents(chunks, ids=ids)
+
+
+def delete_documents(ids: list[str]):
+    get_vectorstore().delete(ids=ids)
