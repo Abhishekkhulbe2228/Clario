@@ -33,8 +33,7 @@ export function isAuthenticated() {
   return Boolean(getStoredToken())
 }
 
-export async function login(email, password) {
-  const result = await client.post('/api/v1/auth/login', { email, password })
+function persistSession(result, action) {
   try {
     localStorage.setItem('clario_access_token', result.access_token)
     localStorage.setItem('clario_user_role', result.role)
@@ -42,13 +41,30 @@ export async function login(email, password) {
       localStorage.setItem('clario_user_email', result.email)
     }
     const payload = decodeTokenPayload(result.access_token)
+    if (result.full_name) {
+      localStorage.setItem('clario_user_name', result.full_name)
+    } else if (payload?.name) {
+      localStorage.setItem('clario_user_name', payload.name)
+    }
     if (payload?.sub) {
       localStorage.setItem('clario_user_id', payload.sub)
     }
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('clario:auth_change', { detail: { action: 'login', role: result.role } }))
+      window.dispatchEvent(new CustomEvent('clario:auth_change', { detail: { action, role: result.role } }))
     }
   } catch {}
+}
+
+export async function login(email, password) {
+  const result = await client.post('/api/v1/auth/login', { email, password })
+  persistSession(result, 'login')
+  return result
+}
+
+// The role is never sent: the backend always assigns `employee` on registration.
+export async function register(name, email, password) {
+  const result = await client.post('/api/v1/auth/register', { name, email, password })
+  persistSession(result, 'register')
   return result
 }
 
@@ -68,6 +84,9 @@ export async function getCurrentUser() {
       localStorage.setItem('clario_user_id', String(user.id))
       localStorage.setItem('clario_user_email', user.email)
       localStorage.setItem('clario_user_role', user.role)
+      if (user.full_name) {
+        localStorage.setItem('clario_user_name', user.full_name)
+      }
     }
     return user
   } catch (err) {

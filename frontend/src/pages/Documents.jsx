@@ -1,10 +1,31 @@
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Upload, FileText, CheckCircle, AlertCircle, Loader, X, RefreshCw, Trash2 } from 'lucide-react'
 import EmptyState from '../components/common/EmptyState.jsx'
-import { uploadDocument } from '../api/documents.js'
+import { uploadDocument, listDocuments, deleteDocument } from '../api/documents.js'
 import clsx from 'clsx'
 
 const SUPPORTED = ['.pdf', '.docx', '.txt', '.md']
+
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  try {
+    return new Date(dateStr).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  } catch {
+    return dateStr
+  }
+}
 
 function UploadStatus({ upload }) {
   return (
@@ -49,7 +70,37 @@ function UploadStatus({ upload }) {
 export default function DocumentsPage() {
   const [dragging, setDragging] = useState(false)
   const [uploads, setUploads] = useState([])
+  const [documents, setDocuments] = useState([])
+  const [loadingDocs, setLoadingDocs] = useState(false)
+  const [docError, setDocError] = useState(null)
   const fileRef = useRef()
+
+  const fetchDocs = useCallback(async () => {
+    setLoadingDocs(true)
+    setDocError(null)
+    try {
+      const res = await listDocuments()
+      setDocuments(res?.documents || [])
+    } catch (err) {
+      setDocError(err.message || 'Failed to load documents')
+    } finally {
+      setLoadingDocs(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchDocs()
+  }, [fetchDocs])
+
+  const handleDeleteDoc = async (id, name) => {
+    if (!window.confirm(`Are you sure you want to remove "${name}" from the knowledge base?`)) return
+    try {
+      await deleteDocument(id)
+      setDocuments(prev => prev.filter(d => d.id !== id))
+    } catch (err) {
+      alert(err.message || 'Failed to delete document')
+    }
+  }
 
   const processFile = useCallback(async (file) => {
     const ext = '.' + file.name.split('.').pop().toLowerCase()
@@ -76,11 +127,12 @@ export default function DocumentsPage() {
       const result = await uploadDocument(file)
       clearInterval(stageTimer)
       setUploads(prev => prev.map(u => u.id === id ? { ...u, status: 'done', progress: 100, result } : u))
+      fetchDocs()
     } catch (err) {
       clearInterval(stageTimer)
       setUploads(prev => prev.map(u => u.id === id ? { ...u, status: 'error', error: err.message } : u))
     }
-  }, [])
+  }, [fetchDocs])
 
   const handleFiles = (files) => {
     Array.from(files).forEach(processFile)
@@ -159,19 +211,75 @@ export default function DocumentsPage() {
           </div>
         )}
 
-        {/* Document list placeholder */}
+        {/* Document list */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
           <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Indexed Documents</h2>
-            <button className="text-xs text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 flex items-center gap-1 transition-colors">
-              <RefreshCw size={11} /> Refresh
+            <button
+              onClick={fetchDocs}
+              disabled={loadingDocs}
+              className="text-xs text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 flex items-center gap-1 transition-colors disabled:opacity-50"
+              aria-label="Refresh document list"
+            >
+              <RefreshCw size={11} className={clsx(loadingDocs && 'animate-spin')} /> {loadingDocs ? 'Refreshing…' : 'Refresh'}
             </button>
           </div>
-          <EmptyState
-            icon={FileText}
-            title="No HR documents yet"
-            description="Upload approved company documents to build Clario's knowledge base. Documents will be chunked, embedded, and indexed automatically."
-          />
+
+          {docError && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/10 text-xs text-red-600 dark:text-red-400 flex items-center justify-between">
+              <span>{docError}</span>
+              <button onClick={fetchDocs} className="underline hover:no-underline font-medium">Retry</button>
+            </div>
+          )}
+
+          {loadingDocs && documents.length === 0 ? (
+            <div className="py-8 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+              <Loader size={14} className="animate-spin text-brand-500" />
+              Loading indexed documents…
+            </div>
+          ) : documents.length === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="No HR documents yet"
+              description="Upload approved company documents to build Clario's knowledge base. Documents will be chunked, embedded, and indexed automatically."
+            />
+          ) : (
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {documents.map((doc) => (
+                <div key={doc.id} className="p-4 flex items-center justify-between gap-3 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center text-brand-600 dark:text-brand-400 flex-shrink-0">
+                      <FileText size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{doc.filename}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        {doc.chunks ? `${doc.chunks} chunks · ` : ''}{formatBytes(doc.byte_size)}{doc.created_at ? ` · ${formatDate(doc.created_at)}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={clsx(
+                      'text-[10px] font-medium px-2 py-0.5 rounded-full capitalize',
+                      doc.status === 'ready' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' :
+                      doc.status === 'failed' ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
+                      'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                    )}>
+                      {doc.status}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteDoc(doc.id, doc.filename)}
+                      className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors"
+                      title="Delete document"
+                      aria-label="Delete document"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Embedding note */}

@@ -1,16 +1,19 @@
 import React, { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { ThumbsUp, ThumbsDown, Check } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, Check, BookOpen, Activity } from 'lucide-react'
 import ClarioLogo from '../common/ClarioLogo.jsx'
 import StatusBadge from '../common/StatusBadge.jsx'
-import AgentActivity from '../trace/AgentActivity.jsx'
-import Sources from '../sources/Sources.jsx'
+import UserAvatar from '../common/UserAvatar.jsx'
 import { sendFeedback } from '../../api/chat.js'
+import { useAuth } from '../../context/AuthContext.jsx'
+import { useChatDrawer } from '../../context/ChatDrawerContext.jsx'
 import clsx from 'clsx'
 import { format } from 'date-fns'
 
 function UserMessage({ message }) {
+  const { user } = useAuth()
+
   return (
     <div className="flex justify-end gap-3 px-4 py-2 animate-slide-up">
       <div className="max-w-[75%] md:max-w-[60%]">
@@ -21,9 +24,7 @@ function UserMessage({ message }) {
           {format(new Date(message.timestamp), 'HH:mm')}
         </p>
       </div>
-      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center flex-shrink-0 mt-1">
-        <span className="text-xs font-semibold text-white">E</span>
-      </div>
+      <UserAvatar user={user} size="sm" count={1} className="mt-1" />
     </div>
   )
 }
@@ -31,8 +32,7 @@ function UserMessage({ message }) {
 function AssistantMessage({ message }) {
   const [feedback, setFeedback] = useState(null)
   const [feedbackSent, setFeedbackSent] = useState(false)
-  const [traceExpanded, setTraceExpanded] = useState(false)
-  const [sourcesExpanded, setSourcesExpanded] = useState(false)
+  const { openDrawer } = useChatDrawer()
 
   const handleFeedback = async (value) => {
     if (feedbackSent) return
@@ -48,18 +48,20 @@ function AssistantMessage({ message }) {
   return (
     <div className="flex gap-3 px-4 py-2 animate-slide-up">
       {/* Avatar */}
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-violet-600 flex items-center justify-center mt-1 shadow-sm">
-        <ClarioLogo size={20} />
+      <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-white dark:bg-navy-900 border border-gray-100 dark:border-gray-800 flex items-center justify-center mt-1 shadow-sm overflow-hidden p-0.5">
+        <ClarioLogo size={24} />
       </div>
 
       <div className="flex-1 min-w-0 max-w-2xl">
         {/* Main answer card */}
-        <div className={clsx(
-          'px-4 py-3.5 rounded-2xl rounded-tl-sm border shadow-sm',
-          isInsufficient
-            ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30'
-            : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
-        )}>
+        <div
+          className={clsx(
+            'px-4 py-3.5 rounded-2xl rounded-tl-sm border shadow-sm',
+            isInsufficient
+              ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30'
+              : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
+          )}
+        >
           {/* Source badge */}
           {message.sourceUsed && (
             <div className="mb-3">
@@ -80,17 +82,38 @@ function AssistantMessage({ message }) {
           {format(new Date(message.timestamp), 'HH:mm')}
         </p>
 
-        {/* Sources */}
-        {hasSources && (
-          <div className="mt-2">
-            <Sources citations={message.citations} sourceUsed={message.sourceUsed} />
-          </div>
-        )}
+        {/* Sources and Agent Activity compact triggers */}
+        {(hasSources || hasTrace) && (
+          <div className="flex items-center gap-2 mt-2 px-1 flex-wrap">
+            {hasSources && (
+              <button
+                type="button"
+                onClick={() => openDrawer('sources', message)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium
+                  bg-gray-50 dark:bg-gray-800/70 hover:bg-brand-50 dark:hover:bg-brand-950/40
+                  text-gray-700 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400
+                  border border-gray-200/80 dark:border-gray-800 transition-colors shadow-2xs cursor-pointer"
+                aria-label={`View ${message.citations.length} sources in side panel`}
+              >
+                <BookOpen size={12} className="text-brand-500" />
+                <span>Sources · {message.citations.length}</span>
+              </button>
+            )}
 
-        {/* Agent trace */}
-        {hasTrace && (
-          <div className="mt-2">
-            <AgentActivity trace={message.trace} />
+            {hasTrace && (
+              <button
+                type="button"
+                onClick={() => openDrawer('trace', message)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium
+                  bg-gray-50 dark:bg-gray-800/70 hover:bg-violet-50 dark:hover:bg-violet-950/40
+                  text-gray-700 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400
+                  border border-gray-200/80 dark:border-gray-800 transition-colors shadow-2xs cursor-pointer"
+                aria-label="View agent activity in side panel"
+              >
+                <Activity size={12} className="text-violet-500" />
+                <span>Agent activity</span>
+              </button>
+            )}
           </div>
         )}
 

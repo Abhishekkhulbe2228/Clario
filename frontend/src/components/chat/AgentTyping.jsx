@@ -11,8 +11,8 @@ export default function AgentTyping({ stage = 'Analyzing your question...' }) {
 
   return (
     <div className="flex gap-3 px-4 py-3 animate-fade-in">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-violet-600 flex items-center justify-center">
-        <ClarioLogo size={20} />
+      <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-white dark:bg-navy-900 border border-gray-100 dark:border-gray-800 flex items-center justify-center shadow-sm overflow-hidden p-0.5">
+        <ClarioLogo size={24} />
       </div>
       <div className="flex flex-col gap-2 max-w-md">
         <div className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm border border-gray-100 dark:border-gray-800 shadow-sm">

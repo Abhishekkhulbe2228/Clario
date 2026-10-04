@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     bootstrap_admin_email: str = ""
     bootstrap_admin_password: str = ""
+    bootstrap_employee_email: str = "employee@company.com"
+    bootstrap_employee_password: str = ""
     max_upload_bytes: int = 10 * 1024 * 1024
     audit_db_path: str = str(BASE_DIR / "data" / "audit.db")
     upload_dir: str = str(BASE_DIR / "uploads")
@@ -35,8 +37,6 @@ class Settings(BaseSettings):
     @property
     def allowed_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
-
-
 
 
 @lru_cache

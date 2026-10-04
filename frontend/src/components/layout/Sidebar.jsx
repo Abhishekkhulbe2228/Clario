@@ -6,11 +6,13 @@ import {
   X, LogIn, LogOut
 } from 'lucide-react'
 import ClarioLogo from '../common/ClarioLogo.jsx'
+import UserAvatar from '../common/UserAvatar.jsx'
 import clsx from 'clsx'
 import { useHealth } from '../../hooks/useHealth.js'
 import { getConversations } from '../../utils/storage.js'
 import { format, isToday, isYesterday } from 'date-fns'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { getUserDisplayName } from '../../utils/user.js'
 
 const navItems = [
   { to: '/', label: 'Chat', icon: MessageSquare, exact: true },
@@ -24,7 +26,7 @@ const navItems = [
 export default function Sidebar({ open, onClose, onNewChat }) {
   const health = useHealth()
   const navigate = useNavigate()
-  const { user, isAuthenticated, openAuthModal, logout } = useAuth()
+  const { user, isAuthenticated, logout } = useAuth()
   const [conversations, setConversations] = useState(() => getConversations().slice(0, 6))
 
   useEffect(() => {
@@ -67,10 +69,12 @@ export default function Sidebar({ open, onClose, onNewChat }) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-5 pb-4">
           <div className="flex items-center gap-2.5">
-            <ClarioLogo size={34} />
+            <ClarioLogo size={36} />
             <div>
-              <div className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">Clario</div>
-              <div className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">Intelligent Workplace</div>
+              <div className="font-bold text-gray-900 dark:text-white text-base leading-tight tracking-tight flex items-baseline">
+                Clar<span className="text-brand-500 font-extrabold">i</span>o
+              </div>
+              <div className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">Your Intelligent Workplace Assistant</div>
             </div>
           </div>
           <button
@@ -162,14 +166,12 @@ export default function Sidebar({ open, onClose, onNewChat }) {
           {isAuthenticated && user ? (
             <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 transition-colors">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-400 to-violet-500 flex items-center justify-center flex-shrink-0">
-                  <User size={13} className="text-white" />
-                </div>
+                <UserAvatar user={user} size="sm" count={1} />
                 <div className="min-w-0">
-                  <div className="text-xs font-medium text-gray-800 dark:text-gray-200 leading-tight truncate">
-                    {user.role === 'system_admin' ? 'System Admin' : user.role === 'hr_admin' ? 'HR Admin' : 'Employee'}
+                  <div className="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-tight truncate">
+                    {getUserDisplayName(user)}
                   </div>
-                  <div className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight truncate">
+                  <div className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight truncate mt-0.5">
                     {user.email}
                   </div>
                 </div>
@@ -185,7 +187,7 @@ export default function Sidebar({ open, onClose, onNewChat }) {
             </div>
           ) : (
             <button
-              onClick={() => openAuthModal('Sign in to chat with Clario and access your company knowledge base.')}
+              onClick={() => navigate('/login')}
               className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-brand-50/70 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-900/50 text-brand-700 dark:text-brand-300 hover:bg-brand-100/70 transition-colors"
             >
               <div className="flex items-center gap-2 min-w-0">

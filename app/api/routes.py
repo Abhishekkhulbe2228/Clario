@@ -1,12 +1,14 @@
 import hashlib
 import json
 import logging
+import re
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -28,9 +30,54 @@ class ChatRequest(BaseModel):
     question: str = Field(min_length=2, max_length=3000)
 
 
+MIN_PASSWORD_LENGTH = 12
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=320)
-    password: str = Field(min_length=12, max_length=256)
+    password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=256)
+
+
+class RegisterRequest(BaseModel):
+    # Deliberately has no `role` field: any extra keys (e.g. "role") are ignored,
+    # and the role is always assigned server-side.
+    name: str = Field(min_length=2, max_length=120)
+    email: str = Field(min_length=3, max_length=320)
+    password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=256)
+
+    @field_validator("name")
+    @classmethod
+    def clean_name(cls, value: str) -> str:
+        value = " ".join(value.split())
+        if len(value) < 2:
+            raise ValueError("Name must be at least 2 characters")
+        return value
+
+    @field_validator("email")
+    @classmethod
+    def clean_email(cls, value: str) -> str:
+        value = value.strip().lower()
+        if not EMAIL_PATTERN.match(value):
+            raise ValueError("Enter a valid email address")
+        return value
+
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Password cannot be blank")
+        return value
+
+
+def auth_response(user: User) -> dict:
+    return {
+        "access_token": create_access_token(user),
+        "token_type": "bearer",
+        "role": user.role,
+        "email": user.email,
+        "full_name": user.full_name,
+    }
 
 
 class FeedbackRequest(BaseModel):
@@ -63,6 +110,7 @@ def ensure_bootstrap_users(db: Session) -> None:
         if admin is None:
             db.add(User(
                 email=admin_email,
+                full_name="System Administrator",
                 password_hash=hash_password(settings.bootstrap_admin_password),
                 role="system_admin",
             ))
@@ -70,16 +118,18 @@ def ensure_bootstrap_users(db: Session) -> None:
             logger.info("Created bootstrap system administrator (%s)", admin_email)
 
     # 2. Bootstrap default employee user for workplace assistant chat queries
-    emp_email = "employee@company.com"
-    emp = db.scalar(select(User).where(User.email == emp_email))
-    if emp is None:
-        db.add(User(
-            email=emp_email,
-            password_hash=hash_password("Employee1234!"),
-            role="employee",
-        ))
-        db.commit()
-        logger.info("Created bootstrap employee account (%s)", emp_email)
+    if settings.bootstrap_employee_email and settings.bootstrap_employee_password:
+        emp_email = settings.bootstrap_employee_email.lower().strip()
+        emp = db.scalar(select(User).where(User.email == emp_email))
+        if emp is None:
+            db.add(User(
+                email=emp_email,
+                full_name="Employee User",
+                password_hash=hash_password(settings.bootstrap_employee_password),
+                role="employee",
+            ))
+            db.commit()
+            logger.info("Created bootstrap employee account (%s)", emp_email)
 
 
 # Backward compatibility alias
@@ -93,33 +143,55 @@ def health(db: Session = Depends(get_db)):
 
 
 @router.post("/auth/login")
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    ensure_bootstrap_users(db)
-    user = db.scalar(select(User).where(User.email == payload.email.lower()))
+def login(
+    payload: LoginRequest,
+    _: None = Depends(rate_limiter.limit("login", 10, 60)),
+    db: Session = Depends(get_db),
+):
+    user = db.scalar(select(User).where(User.email == payload.email.strip().lower()))
     if user is None or not user.is_active or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
-    return {
-        "access_token": create_access_token(user),
-        "token_type": "bearer",
-        "role": user.role,
-        "email": user.email,
-    }
+    return auth_response(user)
+
+
+@router.post("/auth/register", status_code=status.HTTP_201_CREATED)
+def register(
+    payload: RegisterRequest,
+    _: None = Depends(rate_limiter.limit("register", 5, 60)),
+    db: Session = Depends(get_db),
+):
+    if not settings.jwt_secret:
+        raise HTTPException(status_code=503, detail="Registration is temporarily unavailable")
+    if db.scalar(select(User.id).where(User.email == payload.email)) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists.")
+
+    user = User(
+        email=payload.email,
+        full_name=payload.name,
+        password_hash=hash_password(payload.password),
+        role="employee",  # Always employee. Admin accounts come only from bootstrap configuration.
+        is_active=True,
+    )
+    db.add(user)
+    try:
+        db.commit()
+    except IntegrityError:
+        # Concurrent registration with the same email
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists.")
+    db.refresh(user)
+    logger.info("Registered employee account (id=%s)", user.id)
+    return auth_response(user)
 
 
 @router.post("/auth/refresh")
 def refresh_token(user: User = Depends(get_current_user)):
-    return {
-        "access_token": create_access_token(user),
-        "token_type": "bearer",
-        "role": user.role,
-        "email": user.email,
-    }
+    return auth_response(user)
 
 
 @router.get("/auth/me")
 def me(user: User = Depends(get_current_user)):
-    return {"id": user.id, "email": user.email, "role": user.role}
-
+    return {"id": user.id, "email": user.email, "role": user.role, "full_name": user.full_name}
 
 
 @router.post("/chat")

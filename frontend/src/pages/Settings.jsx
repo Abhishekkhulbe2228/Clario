@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { User, Monitor, Bell, Cpu, CheckCircle, AlertCircle, Moon, Sun } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme.js'
 import { useHealth } from '../hooks/useHealth.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { getUserDisplayName } from '../utils/user.js'
 import clsx from 'clsx'
 
 function Section({ title, icon: Icon, children }) {
@@ -37,16 +39,22 @@ function Input({ ...props }) {
 }
 
 export default function SettingsPage() {
+  const navigate = useNavigate()
   const { theme, toggle } = useTheme()
   const health = useHealth()
-  const { user, isAuthenticated, openAuthModal, logout } = useAuth()
-  const [name, setName] = useState(() => (user?.email ? user.email.split('@')[0] : 'Employee'))
-  const [notifications, setNotifications] = useState(true)
-  const [responseStyle, setResponseStyle] = useState('balanced')
+  const { user, isAuthenticated, logout } = useAuth()
+  const [name, setName] = useState(() => (user ? getUserDisplayName(user) : 'Employee'))
+  const [responseStyle, setResponseStyle] = useState(() => {
+    try {
+      return localStorage.getItem('clario_response_style') || 'balanced'
+    } catch {
+      return 'balanced'
+    }
+  })
 
   useEffect(() => {
-    if (user?.email) {
-      setName(user.email.split('@')[0])
+    if (user) {
+      setName(getUserDisplayName(user))
     }
   }, [user])
 
@@ -90,7 +98,7 @@ export default function SettingsPage() {
                 You are currently browsing in guest mode. Sign in to access your profile and settings.
               </p>
               <button
-                onClick={() => openAuthModal('Sign in to view and edit your profile settings.')}
+                onClick={() => navigate('/login')}
                 className="px-4 py-2 bg-gradient-to-r from-brand-600 to-violet-600 text-white text-sm font-medium rounded-lg shadow-sm hover:from-brand-700 hover:to-violet-700 transition-all"
               >
                 Sign In
@@ -125,41 +133,51 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Notifications</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Receive system updates</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Notifications</p>
+                <span className="text-[10px] uppercase font-semibold tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Coming Soon</span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">System announcements & HR policy update alerts (Planned for v1.1)</p>
             </div>
             <button
-              onClick={() => setNotifications(n => !n)}
-              className={clsx(
-                'relative w-12 h-6 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-1',
-                notifications ? 'bg-gradient-to-r from-brand-600 to-violet-600' : 'bg-gray-200 dark:bg-gray-700'
-              )}
+              disabled
+              className="relative w-12 h-6 rounded-full bg-gray-200 dark:bg-gray-700 opacity-60 cursor-not-allowed"
               role="switch"
-              aria-checked={notifications}
-              aria-label="Toggle notifications"
+              aria-checked={false}
+              aria-label="Toggle notifications (Coming soon)"
+              title="Notifications are planned for v1.1"
             >
-              <span className={clsx(
-                'absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200',
-                notifications && 'translate-x-6'
-              )} />
+              <span className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow" />
             </button>
           </div>
         </Section>
 
         {/* AI Assistant */}
         <Section title="AI Assistant" icon={Cpu}>
-          <Field label="Response Style">
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Response Style</label>
+              <span className="text-[10px] uppercase font-semibold tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Preview</span>
+            </div>
             <select
               value={responseStyle}
-              onChange={e => setResponseStyle(e.target.value)}
+              onChange={e => {
+                setResponseStyle(e.target.value)
+                try {
+                  localStorage.setItem('clario_response_style', e.target.value)
+                } catch {}
+              }}
               className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg
                 text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-brand-300 dark:focus:ring-brand-700"
             >
               <option value="concise">Concise — brief, direct answers</option>
-              <option value="balanced">Balanced — clear explanations with context</option>
+              <option value="balanced">Balanced — clear explanations with context (Default)</option>
               <option value="detailed">Detailed — thorough with examples</option>
             </select>
-          </Field>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5">
+              Configures assistant output depth. Saved for user preference (full backend prompt tuning planned in v1.1).
+            </p>
+          </div>
         </Section>
 
         {/* System */}

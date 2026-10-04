@@ -17,7 +17,7 @@ const STAGE_INTERVAL = 1800
 export default function ChatPage() {
   const { id: urlId } = useParams()
   const navigate = useNavigate()
-  const { user, isAuthenticated, openAuthModal } = useAuth()
+  const { user, isAuthenticated } = useAuth()
 
   const [convId, setConvId] = useState(() => urlId || null)
   const [messages, setMessages] = useState(() => {
@@ -66,7 +66,7 @@ export default function ChatPage() {
 
     // Check authentication before attempting to send
     if (!isAuthenticated) {
-      openAuthModal('Please sign in to chat with Clario.')
+      navigate('/login')
       setError('Authentication required. Please sign in to submit a query.')
       return
     }
@@ -118,7 +118,7 @@ export default function ChatPage() {
       clearInterval(stageTimerRef.current)
       if (err.status === 401 || err.message?.includes('401') || err.message?.includes('expired') || err.message?.includes('Authentication')) {
         setError('Your session has expired or authentication is required. Please sign in again.')
-        openAuthModal('Your session has expired. Please sign in again to continue.')
+        navigate('/login')
       } else {
         setError(err.message || 'Something went wrong.')
       }
@@ -126,7 +126,7 @@ export default function ChatPage() {
       setIsLoading(false)
       setLoadingStage('')
     }
-  }, [isLoading, convId, navigate, animateStages, isAuthenticated, openAuthModal])
+  }, [isLoading, convId, navigate, animateStages, isAuthenticated])
 
   useEffect(() => () => clearInterval(stageTimerRef.current), [])
 
@@ -156,7 +156,7 @@ export default function ChatPage() {
                   </p>
                   {(error.includes('expired') || error.includes('Authentication')) && (
                     <button
-                      onClick={() => openAuthModal('Sign in to continue chatting with Clario.')}
+                      onClick={() => navigate('/login')}
                       className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors"
                     >
                       <LogIn size={13} />
@@ -179,7 +179,7 @@ export default function ChatPage() {
             <span>Sign in to chat with Clario and save your conversations.</span>
           </div>
           <button
-            onClick={() => openAuthModal('Sign in to start your conversation.')}
+            onClick={() => navigate('/login')}
             className="font-medium underline hover:text-brand-700 dark:hover:text-brand-200"
           >
             Sign in

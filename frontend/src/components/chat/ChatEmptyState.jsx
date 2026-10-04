@@ -12,18 +12,18 @@ const suggestions = [
 export default function ChatEmptyState({ onSuggestion }) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-6 py-12 text-center">
-      {/* Logo */}
-      <div className="mb-6">
-        <ClarioLogo size={64} className="mx-auto drop-shadow-lg" />
+      {/* Logo with ambient glow */}
+      <div className="relative mb-6">
+        <div className="absolute -inset-4 bg-clario-glow rounded-full blur-xl pointer-events-none" />
+        <ClarioLogo size={76} className="relative mx-auto drop-shadow-xl" />
       </div>
 
       {/* Headline */}
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2 tracking-tight">
-        How can I help you today?
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 tracking-tight flex items-baseline justify-center">
+        Welcome to Clar<span className="text-brand-500 font-extrabold">i</span>o
       </h1>
       <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md leading-relaxed mb-8">
-        Ask about company policies, leave, benefits, payroll, remote work,
-        attendance, onboarding, and more.
+        Your Intelligent Workplace Assistant. Ask about company policies, leave, benefits, payroll, remote work, attendance, and more.
       </p>
 
       {/* Suggestion cards */}

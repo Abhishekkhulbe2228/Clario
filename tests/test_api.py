@@ -5,6 +5,8 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///data/test_clario.db")
 os.environ.setdefault("JWT_SECRET", "test-secret-only")
 os.environ.setdefault("BOOTSTRAP_ADMIN_EMAIL", "admin@example.com")
 os.environ.setdefault("BOOTSTRAP_ADMIN_PASSWORD", "correct-horse-battery-staple")
+os.environ.setdefault("BOOTSTRAP_EMPLOYEE_EMAIL", "employee@company.com")
+os.environ.setdefault("BOOTSTRAP_EMPLOYEE_PASSWORD", "Employee1234!")
 
 from fastapi.testclient import TestClient
 from app.main import app
@@ -157,6 +159,111 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(me_res.status_code, 200)
 
 
+class RegistrationTests(unittest.TestCase):
+    PASSWORD = "a-long-test-passphrase"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.client = TestClient(app)
+
+    def setUp(self):
+        from app.core.rate_limit import rate_limiter
+        rate_limiter._events.clear()
+
+    def _email(self):
+        import uuid
+        return f"new.employee+{uuid.uuid4().hex[:10]}@example.com"
+
+    def _register(self, **overrides):
+        body = {"name": "Jamie Rivera", "email": self._email(), "password": self.PASSWORD}
+        body.update(overrides)
+        return self.client.post("/api/v1/auth/register", json=body), body
+
+    def test_valid_signup_creates_employee_and_returns_token(self):
+        res, body = self._register(email="  " + self._email().upper() + " ")
+        self.assertEqual(res.status_code, 201, res.text)
+        data = res.json()
+        self.assertEqual(data["role"], "employee")
+        self.assertEqual(data["email"], body["email"].strip().lower())
+        self.assertEqual(data["full_name"], "Jamie Rivera")
+        self.assertNotIn("password", data)
+        self.assertNotIn("password_hash", data)
+
+        me = self.client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {data['access_token']}"})
+        self.assertEqual(me.status_code, 200)
+        self.assertEqual(me.json()["role"], "employee")
+        self.assertEqual(me.json()["full_name"], "Jamie Rivera")
+
+    def test_password_is_hashed_not_plaintext(self):
+        from sqlalchemy import select
+        from app.core.database import SessionLocal
+
+        res, body = self._register()
+        self.assertEqual(res.status_code, 201)
+        with SessionLocal() as db:
+            user = db.scalar(select(User).where(User.email == body["email"]))
+            self.assertNotEqual(user.password_hash, self.PASSWORD)
+            self.assertTrue(user.password_hash.startswith("scrypt$"))
+
+    def test_signup_cannot_escalate_role(self):
+        for role in ("system_admin", "hr_admin", "admin"):
+            res, _ = self._register(role=role)
+            self.assertEqual(res.status_code, 201, res.text)
+            self.assertEqual(res.json()["role"], "employee")
+
+    def test_duplicate_email_returns_409(self):
+        email = self._email()
+        first, _ = self._register(email=email)
+        self.assertEqual(first.status_code, 201)
+        second, _ = self._register(email=email.upper())
+        self.assertEqual(second.status_code, 409)
+        self.assertEqual(second.json()["detail"], "An account with this email already exists.")
+
+    def test_bootstrap_admin_email_cannot_be_reregistered(self):
+        res, _ = self._register(email="admin@example.com")
+        self.assertEqual(res.status_code, 409)
+
+    def test_invalid_inputs_return_422(self):
+        cases = [
+            {"email": "not-an-email"},
+            {"password": "short"},
+            {"password": " " * 14},
+            {"name": " "},
+            {"name": ""},
+        ]
+        for override in cases:
+            res, _ = self._register(**override)
+            self.assertEqual(res.status_code, 422, f"{override} -> {res.status_code}")
+        self.setUp()  # reset rate limiter
+        missing = self.client.post("/api/v1/auth/register", json={})
+        self.assertEqual(missing.status_code, 422)
+
+    def test_register_is_rate_limited(self):
+        statuses = [self._register(email="bad")[0].status_code for _ in range(6)]
+        self.assertEqual(statuses[:5], [422] * 5)
+        self.assertEqual(statuses[5], 429)
+
+    def test_new_employee_can_login_and_is_blocked_from_admin(self):
+        res, body = self._register()
+        self.assertEqual(res.status_code, 201)
+
+        login = self.client.post("/api/v1/auth/login", json={"email": body["email"], "password": self.PASSWORD})
+        self.assertEqual(login.status_code, 200)
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+        self.assertEqual(self.client.get("/api/v1/documents", headers=headers).status_code, 403)
+        self.assertEqual(self.client.get("/api/v1/audit", headers=headers).status_code, 403)
+
+    def test_login_wrong_password_and_unknown_email_return_401(self):
+        res, body = self._register()
+        self.assertEqual(res.status_code, 201)
+        wrong = self.client.post("/api/v1/auth/login", json={"email": body["email"], "password": "wrong-password-123"})
+        self.assertEqual(wrong.status_code, 401)
+        unknown = self.client.post("/api/v1/auth/login", json={"email": self._email(), "password": self.PASSWORD})
+        self.assertEqual(unknown.status_code, 401)
+        self.assertEqual(wrong.json()["detail"], unknown.json()["detail"])
+
+
 if __name__ == "__main__":
     unittest.main()
+
 

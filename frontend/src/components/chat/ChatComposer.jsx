@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react'
-import { Send, Paperclip } from 'lucide-react'
+import { Send } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function ChatComposer({ onSend, isLoading }) {
@@ -36,16 +36,6 @@ export default function ChatComposer({ onSend, isLoading }) {
           'border-gray-200 dark:border-gray-700',
           'focus-within:border-brand-400 dark:focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900/30'
         )}>
-          {/* Attachment button */}
-          <button
-            className="ml-3 mb-3 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300
-              hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
-            aria-label="Attach file"
-            tabIndex={-1}
-          >
-            <Paperclip size={16} />
-          </button>
-
           {/* Textarea */}
           <textarea
             ref={textareaRef}
@@ -56,7 +46,7 @@ export default function ChatComposer({ onSend, isLoading }) {
             placeholder="Ask Clario about HR policies..."
             disabled={isLoading}
             aria-label="Message input"
-            className="flex-1 bg-transparent resize-none py-3 text-sm text-gray-800 dark:text-gray-200
+            className="flex-1 bg-transparent resize-none py-3 pl-4 pr-2 text-sm text-gray-800 dark:text-gray-200
               placeholder-gray-400 dark:placeholder-gray-600 outline-none leading-relaxed
               disabled:opacity-50 max-h-40"
           />

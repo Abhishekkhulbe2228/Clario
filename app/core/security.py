@@ -46,6 +46,7 @@ def create_access_token(user: User, expires_delta: timedelta | None = None) -> s
     payload = {
         "sub": str(user.id),
         "email": user.email,
+        "name": user.full_name or "",
         "role": user.role,
         "exp": int(expire.timestamp()),
     }
@@ -80,7 +81,6 @@ def _decode_token(token: str) -> dict:
         return payload
     except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired access token") from exc
-
 
 
 def get_current_user(

@@ -8,3 +8,5 @@ export const uploadDocument = (file) => {
 
 export const listDocuments = () =>
   client.get('/api/v1/documents').catch(() => ({ documents: [] }))
+
+export const deleteDocument = (id) => client.delete(`/api/v1/documents/${id}`)

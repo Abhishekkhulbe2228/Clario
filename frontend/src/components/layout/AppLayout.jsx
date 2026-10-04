@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import TopBar from './TopBar.jsx'
-import AuthModal from '../auth/AuthModal.jsx'
+import ChatDrawer from '../chat/ChatDrawer.jsx'
+import { ChatDrawerProvider } from '../../context/ChatDrawerContext.jsx'
 
 export default function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -13,23 +14,23 @@ export default function AppLayout({ children }) {
   }, [navigate])
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-navy-900 flex">
-      <Sidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onNewChat={handleNewChat}
-      />
+    <ChatDrawerProvider>
+      <div className="min-h-screen bg-gray-50 dark:bg-navy-900 flex">
+        <Sidebar
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onNewChat={handleNewChat}
+        />
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-[260px]">
-        <TopBar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {children}
-        </main>
+        {/* Main content */}
+        <div className="flex-1 flex flex-col min-w-0 lg:ml-[260px]">
+          <TopBar onMenuClick={() => setSidebarOpen(true)} />
+          <main className="flex-1 flex flex-col overflow-hidden relative">
+            {children || <Outlet />}
+            <ChatDrawer />
+          </main>
+        </div>
       </div>
-
-      {/* Global authentication modal */}
-      <AuthModal />
-    </div>
+    </ChatDrawerProvider>
   )
 }

@@ -13,18 +13,38 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  ::selection {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: #1e3a8a;
+  }
+  .dark ::selection {
+    background-color: rgba(37, 99, 235, 0.35);
+    color: #eff6ff;
+  }
 }
 
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #c7d2fe transparent;
+    scrollbar-color: #93c5fd transparent;
   }
-  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar { width: 5px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 2px; }
-  .dark .scrollbar-thin { scrollbar-color: #3730a3 transparent; }
-  .dark .scrollbar-thin::-webkit-scrollbar-thumb { background: #3730a3; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #bfdbfe; border-radius: 9999px; }
+  .dark .scrollbar-thin { scrollbar-color: #1e3a8a transparent; }
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb { background: #1e3a8a; }
+
+  .bg-clario-gradient {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #7c3aed 100%);
+  }
+  .bg-clario-glow {
+    background: radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.18) 0%, rgba(124, 58, 237, 0.08) 50%, transparent 75%);
+  }
+  .text-clario-gradient {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 }
 
 @layer components {
@@ -39,13 +59,13 @@
   .prose-clario ol { @apply list-decimal pl-5 mb-3 space-y-1; }
   .prose-clario li { @apply text-gray-700 dark:text-gray-300; }
   .prose-clario strong { @apply font-semibold text-gray-900 dark:text-white; }
-  .prose-clario code { @apply bg-gray-100 dark:bg-gray-800 text-brand-700 dark:text-brand-300 px-1.5 py-0.5 rounded text-sm font-mono; }
-  .prose-clario pre { @apply bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-xl overflow-x-auto mb-3 text-sm; }
-  .prose-clario pre code { @apply bg-transparent text-gray-100 p-0; }
+  .prose-clario code { @apply bg-blue-50 dark:bg-navy-800 text-brand-700 dark:text-brand-300 px-1.5 py-0.5 rounded text-sm font-mono border border-blue-100 dark:border-navy-700; }
+  .prose-clario pre { @apply bg-navy-950 text-gray-100 p-4 rounded-xl overflow-x-auto mb-3 text-sm border border-navy-800; }
+  .prose-clario pre code { @apply bg-transparent text-gray-100 p-0 border-none; }
   .prose-clario table { @apply w-full border-collapse mb-3 text-sm; }
-  .prose-clario th { @apply bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium px-3 py-2 text-left border border-gray-200 dark:border-gray-700; }
+  .prose-clario th { @apply bg-gray-100 dark:bg-navy-800 text-gray-900 dark:text-white font-medium px-3 py-2 text-left border border-gray-200 dark:border-gray-700; }
   .prose-clario td { @apply px-3 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300; }
-  .prose-clario a { @apply text-brand-600 dark:text-brand-400 hover:underline; }
-  .prose-clario blockquote { @apply border-l-4 border-brand-300 pl-4 italic text-gray-600 dark:text-gray-400 mb-3; }
-  .prose-clario hr { @apply border-gray-200 dark:border-gray-700 my-3; }
+  .prose-clario a { @apply text-brand-600 dark:text-brand-400 hover:underline font-medium; }
+  .prose-clario blockquote { @apply border-l-4 border-brand-400 pl-4 italic text-gray-600 dark:text-gray-400 mb-3; }
+  .prose-clario hr { @apply border-gray-200 dark:border-gray-800 my-3; }
 }

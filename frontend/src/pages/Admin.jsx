@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 export default function AdminPage() {
   const { user, isAuthenticated, login, logout } = useAuth()
   const [email, setEmail] = useState('admin@example.com')
-  const [password, setPassword] = useState('abhishek2228@')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 

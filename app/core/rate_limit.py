@@ -21,7 +21,10 @@ class InMemoryRateLimiter:
                 while events and events[0] <= threshold:
                     events.popleft()
                 if len(events) >= maximum:
-                    raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded. Please try again shortly.")
+                    raise HTTPException(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        detail="Rate limit exceeded. Please try again shortly.",
+                    )
                 events.append(now)
         return dependency
 
