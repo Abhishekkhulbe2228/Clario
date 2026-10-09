@@ -3,6 +3,17 @@
  */
 
 /**
+ * Roles allowed to access admin-only endpoints (documents, audit).
+ * Mirrors the backend's `require_roles("hr_admin", "system_admin")`.
+ * This only drives UI presentation — the backend remains the source of truth.
+ */
+export const ADMIN_ROLES = ['system_admin', 'hr_admin']
+
+export function isAdminUser(user) {
+  return Boolean(user && ADMIN_ROLES.includes(user.role))
+}
+
+/**
  * Returns the human-friendly display name of the authenticated user.
  * 
  * Preference order:

@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   MessageSquare, History, FileText, Activity, ShieldCheck,
   Settings, Plus, HelpCircle, User, CheckCircle, AlertCircle,
-  X, LogIn, LogOut
+  X, LogIn, LogOut, Lock
 } from 'lucide-react'
 import ClarioLogo from '../common/ClarioLogo.jsx'
 import UserAvatar from '../common/UserAvatar.jsx'
@@ -12,13 +12,13 @@ import { useHealth } from '../../hooks/useHealth.js'
 import { getConversations } from '../../utils/storage.js'
 import { format, isToday, isYesterday } from 'date-fns'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { getUserDisplayName } from '../../utils/user.js'
+import { getUserDisplayName, isAdminUser } from '../../utils/user.js'
 
 const navItems = [
   { to: '/', label: 'Chat', icon: MessageSquare, exact: true },
   { to: '/conversations', label: 'Conversations', icon: History },
   { to: '/documents', label: 'HR Documents', icon: FileText },
-  { to: '/activity', label: 'Agent Activity', icon: Activity },
+  { to: '/activity', label: 'Agent Activity', icon: Activity, adminOnly: true },
   { to: '/admin', label: 'Admin', icon: ShieldCheck },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
@@ -27,6 +27,7 @@ export default function Sidebar({ open, onClose, onNewChat }) {
   const health = useHealth()
   const navigate = useNavigate()
   const { user, isAuthenticated, logout } = useAuth()
+  const isAdmin = isAdminUser(user)
   const [conversations, setConversations] = useState(() => getConversations().slice(0, 6))
 
   useEffect(() => {
@@ -103,7 +104,7 @@ export default function Sidebar({ open, onClose, onNewChat }) {
         {/* Navigation */}
         <nav className="flex-1 px-2 overflow-y-auto scrollbar-thin" aria-label="App sections">
           <ul className="space-y-0.5">
-            {navItems.map(({ to, label, icon: Icon, exact }) => (
+            {navItems.map(({ to, label, icon: Icon, exact, adminOnly }) => (
               <li key={to}>
                 <NavLink
                   to={to}
@@ -118,6 +119,12 @@ export default function Sidebar({ open, onClose, onNewChat }) {
                 >
                   <Icon size={16} />
                   {label}
+                  {adminOnly && !isAdmin && (
+                    <span className="ml-auto flex items-center text-gray-400 dark:text-gray-500" title="Admin only">
+                      <Lock size={12} aria-hidden="true" />
+                      <span className="sr-only">(admin only)</span>
+                    </span>
+                  )}
                 </NavLink>
               </li>
             ))}

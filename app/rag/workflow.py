@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Literal
 from langchain_groq import ChatGroq
 from langchain_tavily import TavilySearch
@@ -70,7 +71,9 @@ def route_after_router(state: AgentState) -> Literal["retrieve_kb", "direct_answ
 
 def retrieve_kb(state: AgentState):
     docs = get_retriever().invoke(state["current_query"])
-    return {"kb_docs": docs, "trace": add_trace(state, f"Private KB retrieval → {len(docs)} chunks")}
+    sources = sorted({Path(d.metadata.get("source", "doc")).name for d in docs if d.metadata.get("source")})
+    src_summary = f" ({', '.join(sources)})" if sources else ""
+    return {"kb_docs": docs, "trace": add_trace(state, f"Private KB retrieval → {len(docs)} chunks{src_summary}")}
 
 
 def grade_kb(state: AgentState):
@@ -160,9 +163,10 @@ Question: {state['question']}\n\nPrivate KB:\n{context}
     seen = set()
     for d in state["kb_docs"]:
         src = d.metadata.get("source", "Private KB")
-        if src not in seen:
-            seen.add(src)
-            citations.append({"title": src.split("/")[-1], "url": "", "type": "private_kb"})
+        clean_title = Path(src).name if src else "Private KB"
+        if clean_title not in seen:
+            seen.add(clean_title)
+            citations.append({"title": clean_title, "url": "", "type": "private_kb"})
     return {"answer": answer, "source_used": "private_kb", "citations": citations, "trace": add_trace(state, "Answer generation → PRIVATE KB")}
 
 
@@ -173,7 +177,12 @@ You are an enterprise HR policy and employee support copilot. The private compan
 Answer ONLY from the web evidence below. Clearly say this is external public information and may require HR validation before being treated as company policy or employment guidance.
 Question: {state['question']}\n\nWeb evidence:\n{state['web_results']}
 """).content
-    return {"answer": answer, "source_used": "web_search", "trace": add_trace(state, "Answer generation → WEB SEARCH")}
+    return {
+        "answer": answer,
+        "source_used": "web_search",
+        "citations": state.get("citations", []),
+        "trace": add_trace(state, "Answer generation → WEB SEARCH"),
+    }
 
 
 
