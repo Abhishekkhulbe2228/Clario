@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     bootstrap_employee_password: str = ""
     max_upload_bytes: int = 10 * 1024 * 1024
     audit_db_path: str = str(BASE_DIR / "data" / "audit.db")
+    supabase_url: str = ""
+    supabase_secret_key: str = ""
+    supabase_storage_bucket: str = "clario-documents"
     upload_dir: str = str(BASE_DIR / "uploads")
     sample_kb_dir: str = str(BASE_DIR / "data" / "sample_kb")
     model_config = SettingsConfigDict(env_file=str(BASE_DIR / ".env"), extra="ignore")

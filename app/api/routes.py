@@ -2,10 +2,11 @@ import hashlib
 import json
 import logging
 import re
+import tempfile
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -16,10 +17,17 @@ from app.core.database import get_db
 from app.core.rate_limit import rate_limiter
 from app.core.security import create_access_token, get_current_user, hash_password, require_roles, verify_password
 from app.models import DocumentRecord, Feedback, QueryAudit, User
-from app.rag.vector_store import add_documents
+from app.rag.vector_store import add_documents, delete_documents
 from app.rag.workflow import ask
 from app.services.audit import write_audit
 from app.services.ingestion import SUPPORTED, chunk_documents, load_file
+from app.services.storage import (
+    StorageConfigurationError,
+    StorageFileNotFoundError,
+    StorageUploadError,
+    StorageError,
+    get_storage_service,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["clario"])
@@ -95,6 +103,7 @@ def serialize_document(record: DocumentRecord) -> dict:
         "byte_size": record.byte_size,
         "created_at": record.created_at,
         "error_message": record.error_message,
+        "storage_key": getattr(record, "storage_key", None) or record.stored_filename,
     }
 
 
@@ -139,7 +148,28 @@ ensure_bootstrap_admin = ensure_bootstrap_users
 @router.get("/health")
 def health(db: Session = Depends(get_db)):
     db.execute(select(1))
-    return {"status": "ok", "service": settings.app_name, "environment": settings.environment}
+    storage_svc = get_storage_service()
+    return {
+        "status": "ok",
+        "service": settings.app_name,
+        "environment": settings.environment,
+        "storage": {
+            "configured": storage_svc.is_configured(),
+            "bucket": storage_svc.bucket_name,
+        },
+    }
+
+
+@router.get("/health/storage")
+def storage_health(
+    _: User = Depends(require_roles("hr_admin", "system_admin")),
+):
+    storage_service = get_storage_service()
+    try:
+        result = storage_service.validate_configuration(check_bucket=True)
+        return {"status": "ok", "storage": result}
+    except StorageConfigurationError as err:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(err))
 
 
 @router.post("/auth/login")
@@ -237,27 +267,43 @@ async def ingest(
     db: Session = Depends(get_db),
     user: User = Depends(require_roles("hr_admin", "system_admin")),
 ):
+    storage_service = get_storage_service()
+    if not storage_service.is_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Document storage is not configured. SUPABASE_URL and SUPABASE_SECRET_KEY are required.",
+        )
+
     filename = Path(file.filename or "").name
     suffix = Path(filename).suffix.lower()
     if not filename or suffix not in SUPPORTED:
         raise HTTPException(status_code=400, detail=f"Supported types: {', '.join(sorted(SUPPORTED))}")
+
     content = await file.read(settings.max_upload_bytes + 1)
     if not content or len(content) > settings.max_upload_bytes:
         raise HTTPException(status_code=413, detail=f"File must be between 1 byte and {settings.max_upload_bytes} bytes")
+
     content_hash = hashlib.sha256(content).hexdigest()
     existing = db.scalar(select(DocumentRecord).where(DocumentRecord.content_hash == content_hash))
-    if existing:
+    if existing and existing.status == "ready":
         raise HTTPException(status_code=409, detail=f"This document is already indexed as '{existing.original_filename}'")
 
+    # If previously failed, clean up the failed record so the user can cleanly retry
+    if existing and existing.status == "failed":
+        if existing.storage_key:
+            storage_service.delete_file(existing.storage_key)
+        db.delete(existing)
+        db.commit()
+
     document_id = str(uuid.uuid4())
-    stored_name = f"{document_id}{suffix}"
-    upload_dir = Path(settings.upload_dir)
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    destination = upload_dir / stored_name
+    storage_key = storage_service.generate_storage_key(document_id, filename)
+    stored_name = storage_key
+
     record = DocumentRecord(
         id=document_id,
         original_filename=filename,
         stored_filename=stored_name,
+        storage_key=storage_key,
         content_hash=content_hash,
         content_type=file.content_type or "application/octet-stream",
         byte_size=len(content),
@@ -267,24 +313,57 @@ async def ingest(
     db.add(record)
     db.commit()
 
+    # Step 1: Upload original document to private Supabase Storage bucket
     try:
-        destination.write_bytes(content)
-        chunks = chunk_documents(load_file(destination))
+        storage_service.upload_file(
+            storage_key=storage_key,
+            content=content,
+            content_type=file.content_type or "application/octet-stream",
+        )
+    except Exception as upload_err:
+        logger.exception("Failed to upload document to Supabase Storage", extra={"document_id": document_id})
+        db.delete(record)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to store document in cloud storage service.",
+        ) from upload_err
+
+    # Step 2: Extract text from temporary local file, chunk, and embed into Pinecone
+    ids: list[str] = []
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_file = Path(temp_dir) / storage_key
+            temp_file.write_bytes(content)
+            chunks = chunk_documents(load_file(temp_file, source_name=filename))
+
+        if not chunks:
+            raise ValueError("Document yielded no text chunks for vector indexing")
+
         ids = [f"{document_id}:{index}" for index in range(len(chunks))]
         for index, chunk in enumerate(chunks):
             chunk.metadata.update({"document_id": document_id, "source": filename, "chunk_index": index})
+
         add_documents(chunks, ids=ids)
+
         record.status = "ready"
         record.chunk_count = len(chunks)
         record.vector_ids_json = json.dumps(ids)
+        record.error_message = None
         db.commit()
         return {"message": "Document indexed", "document": serialize_document(record), "ids_created": len(ids)}
-    except Exception:
+    except Exception as ingest_err:
         logger.exception("Document ingestion failed", extra={"document_id": document_id})
+        if ids:
+            try:
+                delete_documents(ids)
+            except Exception:
+                logger.warning("Could not roll back Pinecone vector IDs for %s", document_id)
+        # Clean up uploaded storage object on ingestion failure to prevent orphans
+        storage_service.delete_file(storage_key)
         record.status = "failed"
         record.error_message = "Document could not be indexed. Review server logs for details."
         db.commit()
-        destination.unlink(missing_ok=True)
         raise HTTPException(status_code=500, detail="Document indexing failed")
 
 
@@ -297,13 +376,178 @@ def delete_document(
     record = db.get(DocumentRecord, document_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Document not found")
-    from app.rag.vector_store import delete_documents
-    vector_ids = json.loads(record.vector_ids_json)
+
+    vector_ids = json.loads(record.vector_ids_json) if record.vector_ids_json else []
     if vector_ids:
-        delete_documents(vector_ids)
-    (Path(settings.upload_dir) / record.stored_filename).unlink(missing_ok=True)
+        try:
+            delete_documents(vector_ids)
+        except Exception as vec_err:
+            logger.warning("Failed to delete vectors for document %s: %s", document_id, vec_err)
+
+    # Delete from Supabase Storage
+    storage_service = get_storage_service()
+    key_to_delete = record.storage_key or record.stored_filename
+    if key_to_delete and storage_service.is_configured():
+        try:
+            storage_service.delete_file(key_to_delete)
+        except Exception as storage_err:
+            logger.warning("Failed to delete storage object %s: %s", key_to_delete, storage_err)
+
+    # Clean up local legacy copy if one existed
+    if record.stored_filename:
+        (Path(settings.upload_dir) / record.stored_filename).unlink(missing_ok=True)
+
     db.delete(record)
     db.commit()
+
+
+@router.get("/documents/{document_id}/download")
+def download_document(
+    document_id: str,
+    signed_url: bool = Query(default=False),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles("hr_admin", "system_admin")),
+):
+    record = db.get(DocumentRecord, document_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    storage_service = get_storage_service()
+    key = record.storage_key or record.stored_filename
+
+    if signed_url:
+        if not storage_service.is_configured():
+            raise HTTPException(status_code=503, detail="Storage service is not configured for signed URLs")
+        try:
+            url = storage_service.create_signed_url(key, expires_in=300)
+            return {"url": url, "filename": record.original_filename}
+        except StorageFileNotFoundError:
+            raise HTTPException(status_code=404, detail="Document file not found in storage")
+        except Exception as e:
+            logger.exception("Failed to generate signed URL for document %s", document_id)
+            raise HTTPException(status_code=500, detail="Failed to generate download URL")
+
+    content: bytes | None = None
+    if storage_service.is_configured() and key:
+        try:
+            content = storage_service.download_file(key)
+        except StorageFileNotFoundError:
+            content = None
+        except Exception:
+            logger.exception("Failed to retrieve document %s from Supabase Storage", document_id)
+
+    # Fallback to local file if not yet migrated
+    if content is None and record.stored_filename:
+        local_path = Path(settings.upload_dir) / record.stored_filename
+        if local_path.is_file():
+            content = local_path.read_bytes()
+
+    if content is None:
+        raise HTTPException(status_code=404, detail="Document file content not found")
+
+    return Response(
+        content=content,
+        media_type=record.content_type or "application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{record.original_filename}"'
+        },
+    )
+
+
+@router.get("/documents/{document_id}/preview")
+def preview_document(
+    document_id: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles("hr_admin", "system_admin")),
+):
+    record = db.get(DocumentRecord, document_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    storage_service = get_storage_service()
+    key = record.storage_key or record.stored_filename
+    content: bytes | None = None
+
+    if storage_service.is_configured() and key:
+        try:
+            content = storage_service.download_file(key)
+        except StorageFileNotFoundError:
+            content = None
+        except Exception:
+            logger.exception("Failed to retrieve document %s from Supabase Storage", document_id)
+
+    if content is None and record.stored_filename:
+        local_path = Path(settings.upload_dir) / record.stored_filename
+        if local_path.is_file():
+            content = local_path.read_bytes()
+
+    if content is None:
+        raise HTTPException(status_code=404, detail="Document file content not found")
+
+    return Response(
+        content=content,
+        media_type=record.content_type or "application/octet-stream",
+        headers={
+            "Content-Disposition": f'inline; filename="{record.original_filename}"'
+        },
+    )
+
+
+@router.post("/documents/{document_id}/reprocess")
+def reprocess_document(
+    document_id: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles("hr_admin", "system_admin")),
+):
+    record = db.get(DocumentRecord, document_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    storage_service = get_storage_service()
+    key = record.storage_key or record.stored_filename
+    content: bytes | None = None
+
+    if storage_service.is_configured() and key:
+        try:
+            content = storage_service.download_file(key)
+        except StorageFileNotFoundError:
+            content = None
+        except Exception:
+            logger.exception("Failed to download document %s for reprocessing", document_id)
+
+    if content is None and record.stored_filename:
+        local_path = Path(settings.upload_dir) / record.stored_filename
+        if local_path.is_file():
+            content = local_path.read_bytes()
+
+    if content is None:
+        raise HTTPException(status_code=404, detail="Original document file not found for reprocessing")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_file = Path(temp_dir) / (record.stored_filename or f"{document_id}.bin")
+        temp_file.write_bytes(content)
+        chunks = chunk_documents(load_file(temp_file, source_name=record.original_filename))
+
+    old_ids = json.loads(record.vector_ids_json) if record.vector_ids_json else []
+    if old_ids:
+        try:
+            delete_documents(old_ids)
+        except Exception:
+            pass
+
+    ids = [f"{document_id}:{index}" for index in range(len(chunks))]
+    for index, chunk in enumerate(chunks):
+        chunk.metadata.update({"document_id": document_id, "source": record.original_filename, "chunk_index": index})
+
+    add_documents(chunks, ids=ids)
+
+    record.status = "ready"
+    record.chunk_count = len(chunks)
+    record.vector_ids_json = json.dumps(ids)
+    record.error_message = None
+    db.commit()
+
+    return {"message": "Document reprocessed", "document": serialize_document(record), "chunks": len(chunks)}
 
 
 @router.get("/audit")

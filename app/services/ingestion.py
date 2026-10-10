@@ -9,18 +9,28 @@ from docx import Document as DocxDocument
 SUPPORTED = {".pdf", ".txt", ".md", ".docx"}
 
 
-def load_file(path: Path) -> list[Document]:
+def load_file(path: Path, source_name: str | None = None) -> list[Document]:
+    """
+    Extracts text documents from a supported file format.
+    Accepts an optional source_name to ensure document metadata reflects
+    the original filename rather than temporary scratch paths.
+    """
     suffix = path.suffix.lower()
     if suffix == ".pdf":
-        return PyPDFLoader(str(path)).load()
-    if suffix in {".txt", ".md"}:
-        return TextLoader(str(path), encoding="utf-8").load()
-    if suffix == ".docx":
+        docs = PyPDFLoader(str(path)).load()
+    elif suffix in {".txt", ".md"}:
+        docs = TextLoader(str(path), encoding="utf-8").load()
+    elif suffix == ".docx":
         doc = DocxDocument(str(path))
         text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
-        return [Document(page_content=text, metadata={"source": str(path)})]
-    raise ValueError(f"Unsupported file type: {suffix}")
+        docs = [Document(page_content=text, metadata={"source": source_name or str(path)})]
+    else:
+        raise ValueError(f"Unsupported file type: {suffix}")
 
+    if source_name:
+        for d in docs:
+            d.metadata["source"] = source_name
+    return docs
 
 
 def chunk_documents(docs: Iterable[Document]) -> list[Document]:

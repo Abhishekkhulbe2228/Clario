@@ -35,6 +35,7 @@ class DocumentRecord(Base):
     chunk_count: Mapped[int] = mapped_column(Integer, default=0)
     vector_ids_json: Mapped[str] = mapped_column(Text, default="[]")
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

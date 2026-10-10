@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 # existing ones, so these are added explicitly (idempotent, non-destructive).
 _ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
     "users": {"full_name": "VARCHAR(120)"},
+    "documents": {"storage_key": "VARCHAR(512)"},
 }
 
 

@@ -1,8 +1,13 @@
 .git/
-.env
+.venv/
 venv/
 __pycache__/
 *.py[cod]
-data/
-uploads/
-frontend/
+.env
+.env.*
+!.env.example
+scratch/
+.agents/
+skills-lock.json
+tests
+*.log

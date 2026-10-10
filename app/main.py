@@ -1,11 +1,15 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings, BASE_DIR
 from app.core.logging import configure_logging
 from app.core.database import SessionLocal
 from app.services.audit import init_db
+from app.services.storage import get_storage_service, StorageConfigurationError
 from app.api.routes import router, ensure_bootstrap_users
 
+logger = logging.getLogger(__name__)
 
 configure_logging()
 settings = get_settings()
@@ -14,8 +18,24 @@ try:
     with SessionLocal() as db:
         ensure_bootstrap_users(db)
 except Exception as e:
-    import logging
-    logging.getLogger(__name__).warning("Could not run ensure_bootstrap_users on startup: %s", e)
+    logger.warning("Could not run ensure_bootstrap_users on startup: %s", e)
+
+# Validate storage configuration on startup
+storage_service = get_storage_service()
+if settings.environment == "production" or settings.app_env == "production":
+    try:
+        storage_service.validate_configuration(check_bucket=True)
+        logger.info("Supabase Storage validated successfully for bucket '%s'", storage_service.bucket_name)
+    except Exception as exc:
+        logger.critical("Fatal: Supabase Storage configuration validation failed on startup: %s", exc)
+        raise RuntimeError(f"Supabase Storage configuration failure: {exc}") from exc
+else:
+    if storage_service.is_configured():
+        logger.info("Supabase Storage configured for bucket '%s'", storage_service.bucket_name)
+    else:
+        logger.warning(
+            "Supabase Storage credentials not configured. Document uploads will require SUPABASE_URL and SUPABASE_SECRET_KEY."
+        )
 
 
 app = FastAPI(title=settings.app_name, version="1.0.0")
