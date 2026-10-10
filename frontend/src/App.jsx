@@ -11,6 +11,7 @@ import AdminPage from './pages/Admin.jsx'
 import SettingsPage from './pages/Settings.jsx'
 import AuthPage from './pages/Auth.jsx'
 import { ProtectedRoute, PublicOnlyRoute } from './components/auth/RouteGuards.jsx'
+import ErrorBoundary from './components/common/ErrorBoundary.jsx'
 import { getTheme } from './utils/storage.js'
 
 export default function App() {
@@ -21,13 +22,14 @@ export default function App() {
   }, [])
 
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public authentication routes */}
-          <Route element={<PublicOnlyRoute />}>
-            <Route path="/login" element={<AuthPage mode="login" />} />
-            <Route path="/signup" element={<AuthPage mode="signup" />} />
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public authentication routes */}
+            <Route element={<PublicOnlyRoute />}>
+              <Route path="/login" element={<AuthPage mode="login" />} />
+              <Route path="/signup" element={<AuthPage mode="signup" />} />
           </Route>
 
           {/* Protected workspace routes inside AppLayout */}
@@ -49,5 +51,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </ErrorBoundary>
   )
 }

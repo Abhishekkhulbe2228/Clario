@@ -7,12 +7,11 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { format, isToday, isYesterday } from 'date-fns'
 import clsx from 'clsx'
 
-
 function sourceIcon(sourceUsed) {
   if (!sourceUsed) return null
-  if (sourceUsed.includes('private') || sourceUsed === 'kb') return <Shield size={10} className="text-blue-500" />
-  if (sourceUsed.includes('web') || sourceUsed.includes('web_search')) return <Globe size={10} className="text-amber-500" />
-  return <MessageCircle size={10} className="text-gray-400" />
+  if (sourceUsed.includes('private') || sourceUsed === 'kb') return <Shield size={11} className="text-blue-600" />
+  if (sourceUsed.includes('web') || sourceUsed.includes('web_search')) return <Globe size={11} className="text-amber-600" />
+  return <MessageCircle size={11} className="text-zinc-400" />
 }
 
 function ConvItem({ conv, onDelete, onRename }) {
@@ -21,42 +20,54 @@ function ConvItem({ conv, onDelete, onRename }) {
   const [title, setTitle] = useState(conv.title)
 
   const handleRename = () => {
-    if (title.trim()) { onRename(conv.id, title.trim()); setEditing(false) }
+    if (title.trim()) {
+      onRename(conv.id, title.trim())
+      setEditing(false)
+    }
   }
 
-  const lastSource = conv.messages?.filter(m => m.role === 'assistant').slice(-1)[0]?.sourceUsed
+  const lastSource = conv.messages?.filter((m) => m.role === 'assistant').slice(-1)[0]?.sourceUsed
 
   return (
     <div
-      className="group flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 rounded-xl cursor-pointer transition-colors"
+      className="group flex items-center gap-3 px-4 py-3.5 hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
       onClick={() => !editing && navigate(`/conversations/${conv.id}`)}
       role="button"
       tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && !editing && navigate(`/conversations/${conv.id}`)}
+      onKeyDown={(e) => e.key === 'Enter' && !editing && navigate(`/conversations/${conv.id}`)}
     >
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-100 to-violet-100 dark:from-brand-900/30 dark:to-violet-900/30 flex items-center justify-center flex-shrink-0">
-        <MessageSquare size={15} className="text-brand-600 dark:text-brand-400" />
+      <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center flex-shrink-0 text-blue-600">
+        <MessageSquare size={14} />
       </div>
       <div className="flex-1 min-w-0">
         {editing ? (
-          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <input
               autoFocus
               value={title}
-              onChange={e => setTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setEditing(false) }}
-              className="flex-1 text-sm bg-white dark:bg-gray-900 border border-brand-300 dark:border-brand-700 rounded-lg px-2 py-1 outline-none"
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRename()
+                if (e.key === 'Escape') setEditing(false)
+              }}
+              className="flex-1 text-xs sm:text-sm bg-white dark:bg-[#18181b] border border-blue-500 rounded-md px-2.5 py-1 outline-none text-zinc-900 dark:text-zinc-100 font-sans"
             />
-            <button onClick={handleRename} className="text-green-600 hover:text-green-700" aria-label="Save"><Check size={14} /></button>
-            <button onClick={() => setEditing(false)} className="text-gray-400 hover:text-gray-600" aria-label="Cancel"><X size={14} /></button>
+            <button onClick={handleRename} className="text-emerald-600 hover:text-emerald-700 p-1" aria-label="Save">
+              <Check size={14} />
+            </button>
+            <button onClick={() => setEditing(false)} className="text-zinc-400 hover:text-zinc-600 p-1" aria-label="Cancel">
+              <X size={14} />
+            </button>
           </div>
         ) : (
           <>
             <div className="flex items-center gap-1.5">
               {sourceIcon(lastSource)}
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{conv.title}</p>
+              <p className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate font-sans">
+                {conv.title}
+              </p>
             </div>
-            <p className="text-[11px] text-gray-400 dark:text-gray-600 mt-0.5">
+            <p className="text-[11px] text-zinc-400 font-mono mt-0.5">
               {format(new Date(conv.updatedAt || conv.createdAt), 'MMM d · HH:mm')}
               &nbsp;·&nbsp;{conv.messages?.length || 0} messages
             </p>
@@ -64,17 +75,24 @@ function ConvItem({ conv, onDelete, onRename }) {
         )}
       </div>
       {!editing && (
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+        <div
+          className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={() => setEditing(true)}
-            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            className="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
             aria-label="Rename conversation"
-          ><Edit2 size={13} /></button>
+          >
+            <Edit2 size={13} />
+          </button>
           <button
             onClick={() => onDelete(conv.id)}
-            className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            className="p-1 rounded-md hover:bg-rose-50 text-zinc-400 hover:text-rose-600 transition-colors cursor-pointer"
             aria-label="Delete conversation"
-          ><Trash2 size={13} /></button>
+          >
+            <Trash2 size={13} />
+          </button>
         </div>
       )}
     </div>
@@ -96,18 +114,22 @@ export default function ConversationsPage() {
     }
   }, [user, refresh])
 
-  const handleDelete = useCallback((id) => {
-    deleteConversation(id)
-    refresh()
-  }, [refresh])
+  const handleDelete = useCallback(
+    (id) => {
+      deleteConversation(id)
+      refresh()
+    },
+    [refresh]
+  )
 
-  const handleRename = useCallback((id, title) => {
-    renameConversation(id, title)
-    refresh()
-  }, [refresh])
+  const handleRename = useCallback(
+    (id, title) => {
+      renameConversation(id, title)
+      refresh()
+    },
+    [refresh]
+  )
 
-
-  // Group by date
   const grouped = conversations.reduce((acc, c) => {
     const d = new Date(c.updatedAt || c.createdAt)
     const key = isToday(d) ? 'Today' : isYesterday(d) ? 'Yesterday' : 'Older'
@@ -117,26 +139,35 @@ export default function ConversationsPage() {
   }, {})
 
   return (
-    <div className="flex-1 overflow-y-auto scrollbar-thin">
-      <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="flex-1 overflow-y-auto scrollbar-thin bg-[#fbfbfa] dark:bg-[#111113]">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-7">
         <div className="mb-6">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Conversations</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your HR conversation history</p>
+          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1">
+            <span>Query History</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-zinc-900 dark:text-zinc-100 font-editorial tracking-tight">
+            Saved Conversations
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-sans mt-1">
+            Revisit previous queries, policy citations, and assistant responses.
+          </p>
         </div>
 
         {conversations.length === 0 ? (
           <EmptyState
             icon={MessageSquare}
-            title="No conversations yet"
-            description="Your HR conversations with Clario will appear here."
+            title="No conversations saved"
+            description="Your workplace queries and assistant responses will be archived here."
           />
         ) : (
           <div className="space-y-6">
             {Object.entries(grouped).map(([group, convs]) => (
               <div key={group}>
-                <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-wider mb-2 px-1">{group}</h2>
-                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-50 dark:divide-gray-800">
-                  {convs.map(conv => (
+                <h2 className="text-[10px] font-mono font-semibold text-zinc-400 uppercase tracking-wider mb-2 px-1">
+                  {group}
+                </h2>
+                <div className="rounded-xl border border-[#e5e5e0] dark:border-[#27272a] bg-white dark:bg-[#18181b] shadow-xs overflow-hidden divide-y divide-[#efefea] dark:divide-[#27272a]">
+                  {convs.map((conv) => (
                     <ConvItem key={conv.id} conv={conv} onDelete={handleDelete} onRename={handleRename} />
                   ))}
                 </div>

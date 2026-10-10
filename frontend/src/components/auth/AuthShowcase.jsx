@@ -1,116 +1,82 @@
 import React from 'react'
-import { FileText, Check, Sparkles, ShieldCheck, Search, GitBranch } from 'lucide-react'
+import { FileText, Check, ShieldCheck, Search, GitBranch } from 'lucide-react'
 import ClarioLogo from '../common/ClarioLogo.jsx'
 
 /**
- * Left-hand brand panel for the auth pages.
- * The "illustration" is a stylised preview of Clario's own UI (question → cited
- * answer → decision trace) so the visual explains the product instead of decorating it.
+ * Editorial brand showcase panel for authentication pages.
+ * Clean, light editorial surfaces illustrating Clario's workplace knowledge RAG workflow.
  */
 export default function AuthShowcase() {
   return (
     <aside
-      className="relative hidden lg:flex flex-col justify-between overflow-hidden rounded-[28px] bg-navy-950 text-white p-10 xl:p-12"
+      className="relative hidden lg:flex flex-col justify-between overflow-hidden rounded-3xl bg-[#f5f5f2] dark:bg-[#18181b] border border-[#e5e5e0] dark:border-[#27272a] p-10 xl:p-12 shadow-2xs"
       aria-label="About Clario"
     >
-      {/* Soft ambient light + faint grid */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 -left-24 h-[420px] w-[420px] rounded-full bg-brand-600/25 blur-[110px]" />
-        <div className="absolute bottom-[-140px] right-[-80px] h-[380px] w-[380px] rounded-full bg-violet-600/20 blur-[110px]" />
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)',
-            backgroundSize: '44px 44px',
-            maskImage: 'radial-gradient(ellipse at 40% 45%, black 30%, transparent 75%)',
-            WebkitMaskImage: 'radial-gradient(ellipse at 40% 45%, black 30%, transparent 75%)',
-          }}
-        />
-      </div>
-
-      {/* Brand */}
-      <div className="relative flex items-center gap-2.5">
-        <ClarioLogo size={38} />
-        <span className="text-xl font-bold tracking-tight text-white flex items-baseline">
-          Clar<span className="text-brand-400 font-extrabold">i</span>o
+      {/* Brand header */}
+      <div className="relative flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <ClarioLogo size={36} />
+          <span className="text-lg font-bold font-brand tracking-tight text-zinc-900 dark:text-zinc-100 flex items-baseline">
+            Clar<span className="text-amber-500 font-extrabold">i</span>o
+          </span>
+        </div>
+        <span className="text-[10px] font-mono uppercase tracking-wider text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/40 px-2.5 py-1 rounded border border-teal-200/60 dark:border-teal-800/40">
+          Knowledge Copilot
         </span>
       </div>
 
-      {/* Product preview */}
-      <div className="relative my-10 mx-auto w-full max-w-[420px]" aria-hidden="true">
-        {/* Question */}
-        <div className="ml-auto w-fit max-w-[82%] rounded-2xl rounded-br-md bg-white/10 border border-white/10 px-4 py-2.5 text-[13px] text-white/90 backdrop-blur-sm motion-safe:animate-slide-up">
-          How many days of parental leave do we get?
+      {/* Product workflow demonstration */}
+      <div className="relative my-8 mx-auto w-full max-w-[420px]" aria-hidden="true">
+        {/* User query bubble */}
+        <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-xs bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 px-4 py-2.5 text-xs font-sans shadow-xs">
+          How many weeks of parental leave do primary caregivers receive?
         </div>
 
-        {/* Answer card */}
-        <div
-          className="mt-4 rounded-2xl bg-white text-gray-800 shadow-[0_24px_60px_-20px_rgba(8,15,35,0.7)] p-5 motion-safe:animate-slide-up"
-          style={{ animationDelay: '80ms', animationFillMode: 'both' }}
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-6 w-6 rounded-lg bg-blue-50 flex items-center justify-center p-0.5">
-              <ClarioLogo size={18} />
+        {/* Assistant response card */}
+        <div className="mt-3.5 p-5 rounded-xl border border-[#e5e5e0] dark:border-[#27272a] bg-white dark:bg-[#121214] text-zinc-900 dark:text-zinc-100 shadow-xs">
+          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[#efefea] dark:border-[#27272a]">
+            <div className="h-6 w-6 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center p-0.5 border border-[#e5e5e0] dark:border-[#27272a]">
+              <ClarioLogo size={16} />
             </div>
-            <span className="text-xs font-bold text-gray-900 flex items-baseline">
-              Clar<span className="text-brand-500 font-extrabold">i</span>o
+            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 font-sans">
+              Clario Copilot
             </span>
-            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-              <ShieldCheck size={11} /> Company policy
+            <span className="ml-auto inline-flex items-center gap-1 rounded font-mono bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 px-2 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-400">
+              <ShieldCheck size={11} /> Verified Policy
             </span>
           </div>
-          <p className="text-[13px] leading-relaxed text-gray-700">
-            Primary caregivers receive <span className="font-semibold text-gray-900">16 weeks</span> of fully paid
-            leave, and secondary caregivers receive <span className="font-semibold text-gray-900">6 weeks</span>.
+
+          <p className="text-xs leading-relaxed text-zinc-700 dark:text-zinc-300 font-sans">
+            Primary caregivers receive <strong className="text-zinc-900 dark:text-zinc-100 font-semibold">16 weeks of fully paid leave</strong>, with 100% salary continuation. Secondary caregivers receive 6 weeks.
           </p>
-          <div className="mt-3.5 space-y-1.5">
-            <div className="h-1.5 w-11/12 rounded-full bg-gray-100" />
-            <div className="h-1.5 w-8/12 rounded-full bg-gray-100" />
-          </div>
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {['Leave_Policy.pdf', 'Benefits_Guide.docx'].map((name) => (
-              <span
-                key={name}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] text-gray-600"
-              >
-                <FileText size={11} className="text-brand-500" /> {name}
+
+          <div className="mt-3.5 pt-3 border-t border-[#efefea] dark:border-[#27272a] flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded border border-[#e5e5e0] dark:border-[#27272a] bg-zinc-50 dark:bg-zinc-900 px-2 py-1 text-[10px] text-zinc-600 dark:text-zinc-400 font-mono">
+                <FileText size={10} className="text-blue-600" /> Parental_Leave_Policy.pdf
               </span>
-            ))}
+            </div>
+            <span className="text-[10px] text-zinc-400 font-mono">Page 4 · Sec. 2</span>
           </div>
         </div>
 
-        {/* Decision trace */}
-        <div
-          className="absolute -left-6 xl:-left-10 -bottom-12 w-[220px] rounded-2xl border border-white/10 bg-navy-900/90 backdrop-blur-md p-3.5 shadow-xl motion-safe:animate-slide-up"
-          style={{ animationDelay: '160ms', animationFillMode: 'both' }}
-        >
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 mb-2.5">
-            <GitBranch size={11} /> Decision trace
+        {/* Multi-agent reasoning trace pill */}
+        <div className="mt-3 p-3 rounded-lg border border-[#e5e5e0] dark:border-[#27272a] bg-white/80 dark:bg-[#121214]/80 backdrop-blur-xs flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-zinc-700 dark:text-zinc-300 text-[11px] font-mono">Evidence grading: 100% relevant</span>
           </div>
-          {[
-            { icon: Search, label: 'Searched knowledge base' },
-            { icon: ShieldCheck, label: 'Evidence graded relevant' },
-            { icon: Check, label: 'Answer cited · 2 sources' },
-          ].map(({ icon: Icon, label }) => (
-            <div key={label} className="flex items-center gap-2 py-1 text-[11.5px] text-white/80">
-              <span className="h-5 w-5 rounded-md bg-brand-500/20 flex items-center justify-center">
-                <Icon size={11} className="text-brand-300" />
-              </span>
-              {label}
-            </div>
-          ))}
+          <span className="text-[10px] font-mono text-zinc-400">0 ms fallback</span>
         </div>
       </div>
 
-      {/* Positioning */}
-      <div className="relative max-w-[440px]">
-        <h2 className="text-[28px] xl:text-[32px] font-semibold leading-[1.15] tracking-tight">
-          Your intelligent knowledge workspace.
+      {/* Editorial footer statement */}
+      <div className="relative max-w-[420px]">
+        <h2 className="text-2xl xl:text-3xl font-semibold leading-snug tracking-tight font-editorial text-zinc-900 dark:text-zinc-100">
+          Workplace intelligence, verified and cited.
         </h2>
-        <p className="mt-3 text-[15px] leading-relaxed text-white/60">
-          Ask questions in plain language and get answers grounded in your organization's own documents,
-          with the sources to prove it.
+        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 font-sans">
+          Clario gives employees reliable answers grounded exclusively in approved company documentation.
         </p>
       </div>
     </aside>

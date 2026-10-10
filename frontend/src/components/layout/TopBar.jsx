@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Search, Moon, Sun, Bell, User, LogIn, LogOut, Shield, X, MessageSquare } from 'lucide-react'
+import { Menu, Search, Moon, Sun, Bell, User, LogIn, LogOut, Shield, X, MessageSquare, ChevronRight } from 'lucide-react'
+import clsx from 'clsx'
 import ClarioLogo from '../common/ClarioLogo.jsx'
 import UserAvatar from '../common/UserAvatar.jsx'
 import { useTheme } from '../../hooks/useTheme.js'
@@ -36,45 +37,57 @@ export default function TopBar({ onMenuClick }) {
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false)
-      }
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setSearchOpen(false)
-      }
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setNotifOpen(false)
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+      if (searchRef.current && !searchRef.current.contains(e.target)) setSearchOpen(false)
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Keyboard shortcut Ctrl+K / Cmd+K
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   return (
-    <header className="h-14 border-b border-gray-100 dark:border-gray-800/60 bg-white dark:bg-navy-950
-      flex items-center px-4 gap-3 sticky top-0 z-10">
-      {/* Mobile menu */}
+    <header className="h-14 border-b border-[#e5e5e0] dark:border-[#27272a] bg-white/90 dark:bg-[#121214]/90 backdrop-blur-md sticky top-0 z-20 flex items-center px-4 sm:px-6 gap-3 transition-colors duration-150">
+      {/* Mobile toggle */}
       <button
-        className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 -ml-1"
+        className="lg:hidden p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 -ml-1 transition-colors"
         onClick={onMenuClick}
         aria-label="Open navigation"
       >
         <Menu size={18} />
       </button>
 
-      {/* Mobile logo */}
+      {/* Mobile brand mark */}
       <div className="lg:hidden flex items-center gap-2">
-        <ClarioLogo size={28} />
-        <span className="font-bold text-gray-900 dark:text-white text-base tracking-tight flex items-baseline">
-          Clar<span className="text-brand-500 font-extrabold">i</span>o
+        <ClarioLogo size={26} />
+        <span className="font-brand font-bold text-zinc-900 dark:text-zinc-100 text-sm tracking-tight flex items-baseline">
+          Clar<span className="text-amber-500 font-extrabold">i</span>o
         </span>
       </div>
 
-      {/* Search */}
-      <div className="flex-1 max-w-md relative" ref={searchRef}>
+      {/* Editorial context label */}
+      <div className="hidden lg:flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+        <span className="font-medium text-zinc-900 dark:text-zinc-100 font-editorial text-sm">Clario</span>
+        <ChevronRight size={12} className="text-zinc-400" />
+        <span className="text-zinc-600 dark:text-zinc-400 font-medium">Workplace Knowledge</span>
+      </div>
+
+      {/* Center Search Input */}
+      <div className="flex-1 max-w-md mx-auto relative" ref={searchRef}>
         {searchOpen ? (
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
               autoFocus
@@ -90,14 +103,13 @@ export default function TopBar({ onMenuClick }) {
                   setSearchQuery('')
                 }
               }}
-              placeholder="Search conversations..."
-              className="w-full pl-9 pr-8 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border-0 rounded-lg
-                text-gray-800 dark:text-gray-200 placeholder-gray-400 outline-none focus:ring-2 focus:ring-brand-300 dark:focus:ring-brand-700"
+              placeholder="Search HR policies and conversations…"
+              className="w-full pl-9 pr-8 py-1.5 text-xs bg-white dark:bg-[#18181b] border border-blue-500 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 outline-none shadow-xs font-sans"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
                 aria-label="Clear search"
               >
                 <X size={12} />
@@ -105,7 +117,7 @@ export default function TopBar({ onMenuClick }) {
             )}
 
             {searchQuery.trim() && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-navy-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 py-1 z-50 overflow-hidden">
+              <div className="absolute top-full left-0 right-0 mt-1.5 rounded-lg border border-[#e5e5e0] dark:border-[#27272a] bg-white dark:bg-[#18181b] shadow-lg py-1 z-50 overflow-hidden">
                 {matchingConversations.length > 0 ? (
                   matchingConversations.map(conv => (
                     <button
@@ -115,15 +127,15 @@ export default function TopBar({ onMenuClick }) {
                         setSearchOpen(false)
                         setSearchQuery('')
                       }}
-                      className="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800/60 flex items-center gap-2 transition-colors text-xs text-gray-700 dark:text-gray-200"
+                      className="w-full px-3 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 flex items-center gap-2 transition-colors text-xs text-zinc-800 dark:text-zinc-200"
                     >
-                      <MessageSquare size={13} className="text-brand-500 flex-shrink-0" />
+                      <MessageSquare size={13} className="text-blue-600 flex-shrink-0" />
                       <span className="truncate">{conv.title || 'Untitled conversation'}</span>
                     </button>
                   ))
                 ) : (
-                  <div className="px-3 py-2 text-xs text-gray-400 text-center">
-                    No matching conversations
+                  <div className="px-3 py-2 text-xs text-zinc-400 text-center">
+                    No matching conversations found
                   </div>
                 )}
               </div>
@@ -132,43 +144,50 @@ export default function TopBar({ onMenuClick }) {
         ) : (
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 dark:text-gray-500
-              hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="flex items-center justify-between w-full max-w-sm px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-100/70 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg border border-[#e5e5e0] dark:border-[#27272a] transition-all"
           >
-            <Search size={14} />
-            <span className="hidden sm:inline">Search conversations…</span>
+            <div className="flex items-center gap-2">
+              <Search size={13} className="text-zinc-400" />
+              <span className="hidden sm:inline">Search knowledge base…</span>
+              <span className="sm:hidden">Search…</span>
+            </div>
+            <kbd className="hidden sm:inline-block text-[10px] font-mono text-zinc-400 bg-white dark:bg-zinc-900 px-1.5 py-0.5 rounded border border-[#e5e5e0] dark:border-[#27272a]">
+              ⌘K
+            </kbd>
           </button>
         )}
       </div>
 
+      {/* Right controls */}
       <div className="ml-auto flex items-center gap-2">
         {/* Theme toggle */}
         <button
           onClick={toggle}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+          className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-colors"
           aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
         >
-          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
         </button>
 
         {/* Notifications */}
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setNotifOpen(o => !o)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-colors"
             aria-label="Notifications"
             title="Notifications"
           >
-            <Bell size={16} />
+            <Bell size={15} />
           </button>
           {notifOpen && (
-            <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-navy-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-4 z-50 text-xs">
+            <div className="absolute right-0 mt-2 w-64 rounded-xl border border-[#e5e5e0] dark:border-[#27272a] bg-white dark:bg-[#18181b] shadow-xl p-4 z-50 text-xs animate-slide-up">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-gray-800 dark:text-gray-200">Notifications</span>
-                <span className="text-[10px] text-gray-400">0 unread</span>
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">Notifications</span>
+                <span className="text-[10px] text-zinc-400 font-mono">0 unread</span>
               </div>
-              <p className="text-gray-500 dark:text-gray-400 text-center py-3">
-                No new notifications. You are all caught up!
+              <p className="text-zinc-500 dark:text-zinc-400 text-center py-3">
+                No new alerts. All knowledge indexes are synced.
               </p>
             </div>
           )}
@@ -179,38 +198,31 @@ export default function TopBar({ onMenuClick }) {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((o) => !o)}
-              className="flex items-center gap-2 p-1 pl-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="flex items-center gap-2 p-1 pl-2.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
               aria-label="User account menu"
             >
-              <span className="hidden sm:inline text-xs font-semibold text-gray-800 dark:text-gray-200 max-w-[140px] md:max-w-[180px] truncate">
+              <span className="hidden sm:inline text-xs font-semibold text-zinc-800 dark:text-zinc-200 max-w-[140px] truncate">
                 {getUserDisplayName(user)}
               </span>
-              <UserAvatar user={user} size="md" count={1} />
+              <UserAvatar user={user} size="sm" count={1} />
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-navy-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 py-2 z-50 animate-slide-up">
-                <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
-                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+              <div className="absolute right-0 mt-2 w-60 rounded-xl border border-[#e5e5e0] dark:border-[#27272a] bg-white dark:bg-[#18181b] shadow-xl py-2 z-50 animate-slide-up">
+                <div className="px-4 py-2.5 border-b border-[#efefea] dark:border-[#27272a]">
+                  <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                     {getUserDisplayName(user)}
                   </p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 font-mono">
                     {user.email}
                   </p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 capitalize flex items-center gap-1 font-medium">
-                    {user.role === 'system_admin' ? (
-                      <>
-                        <Shield size={10} className="text-violet-500" />
-                        System Administrator
-                      </>
-                    ) : user.role === 'hr_admin' ? (
-                      <>
-                        <Shield size={10} className="text-blue-500" />
-                        HR Administrator
-                      </>
-                    ) : (
-                      'Employee'
-                    )}
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 capitalize flex items-center gap-1 font-medium font-mono">
+                    <Shield size={10} className="text-blue-600" />
+                    {user.role === 'system_admin'
+                      ? 'System Administrator'
+                      : user.role === 'hr_admin'
+                      ? 'HR Administrator'
+                      : 'Employee'}
                   </p>
                 </div>
                 <button
@@ -218,10 +230,10 @@ export default function TopBar({ onMenuClick }) {
                     setMenuOpen(false)
                     logout()
                   }}
-                  className="w-full px-4 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2 transition-colors"
+                  className="w-full px-4 py-2 text-left text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 transition-colors cursor-pointer"
                 >
                   <LogOut size={13} />
-                  Sign out
+                  <span>Sign out</span>
                 </button>
               </div>
             )}
@@ -229,10 +241,10 @@ export default function TopBar({ onMenuClick }) {
         ) : (
           <button
             onClick={() => navigate('/login')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-brand-600 to-violet-600 text-white text-xs font-medium hover:from-brand-700 hover:to-violet-700 transition-all shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium shadow-xs transition-colors cursor-pointer"
           >
             <LogIn size={13} />
-            <span>Sign In</span>
+            <span>Sign in</span>
           </button>
         )}
       </div>

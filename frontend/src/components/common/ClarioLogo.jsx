@@ -81,11 +81,11 @@ export default function ClarioLogo({
       <div className="flex flex-col min-w-0">
         <span
           className={clsx(
-            'font-bold tracking-tight text-navy-900 dark:text-white leading-tight flex items-baseline',
+            'font-bold font-onest tracking-tight text-gray-900 dark:text-white leading-tight flex items-baseline',
             textClassName || 'text-base'
           )}
         >
-          Clar<span className="text-brand-500 font-extrabold">i</span>o
+          Clar<span className="text-amber-500 font-extrabold">i</span>o
         </span>
         {showTagline && (
           <span

@@ -15,7 +15,7 @@ export default function AppLayout({ children }) {
 
   return (
     <ChatDrawerProvider>
-      <div className="min-h-screen bg-gray-50 dark:bg-navy-900 flex">
+      <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)] flex selection:bg-blue-500/20 selection:text-blue-500">
         <Sidebar
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}

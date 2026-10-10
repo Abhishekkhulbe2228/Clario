@@ -110,7 +110,7 @@ export function getAgentStages(sourceUsed) {
       'Routing your question...',
       'Searching private HR knowledge...',
       'Checking external sources...',
-      'Evidence insufficient — finalising response...',
+      'Evidence insufficient: finalizing response...',
     ],
   }
   return stages[sourceUsed] || stages.private_kb

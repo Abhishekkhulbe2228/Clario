@@ -12,24 +12,27 @@ const icons = {
 }
 
 const colorMap = {
-  blue: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
-  amber: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800',
-  gray: 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700',
-  red: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',
-  green: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800',
+  blue: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200/80 dark:border-blue-800/40',
+  amber: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/40',
+  gray: 'bg-zinc-50 dark:bg-zinc-800/40 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700',
+  red: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/80 dark:border-rose-800/40',
+  green: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/40',
 }
 
 export default function StatusBadge({ sourceUsed, className = '' }) {
   const { label, icon, color } = getSourceLabel(sourceUsed)
   const Icon = icons[icon] || HelpCircle
+
   return (
-    <span className={clsx(
-      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border',
-      colorMap[color] || colorMap.gray,
-      className
-    )}>
+    <span
+      className={clsx(
+        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium border font-mono',
+        colorMap[color] || colorMap.gray,
+        className
+      )}
+    >
       <Icon size={11} />
-      {label}
+      <span>{label}</span>
     </span>
   )
 }

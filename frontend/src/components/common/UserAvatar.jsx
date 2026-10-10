@@ -15,8 +15,8 @@ export default function UserAvatar({ user, size = 'md', count = 1, className = '
   return (
     <div
       className={clsx(
-        'rounded-full bg-gradient-to-br from-brand-600 to-violet-600 text-white font-semibold',
-        'flex items-center justify-center flex-shrink-0 shadow-sm select-none tracking-tight',
+        'rounded-full bg-blue-600 text-white font-semibold font-sans',
+        'flex items-center justify-center flex-shrink-0 select-none tracking-tight shadow-2xs',
         sizeClasses,
         className
       )}

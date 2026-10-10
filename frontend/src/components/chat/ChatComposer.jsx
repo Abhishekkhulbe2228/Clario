@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react'
-import { Send } from 'lucide-react'
+import { ArrowUp, CornerDownLeft, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function ChatComposer({ onSend, isLoading }) {
@@ -10,7 +10,7 @@ export default function ChatComposer({ onSend, isLoading }) {
     const ta = textareaRef.current
     if (!ta) return
     ta.style.height = 'auto'
-    ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'
+    ta.style.height = Math.min(ta.scrollHeight, 180) + 'px'
   }, [value])
 
   const handleSend = () => {
@@ -29,49 +29,59 @@ export default function ChatComposer({ onSend, isLoading }) {
   }
 
   return (
-    <div className="border-t border-gray-100 dark:border-gray-800/60 bg-white dark:bg-navy-950 px-4 py-3">
+    <div className="border-t border-[#e5e5e0] dark:border-[#27272a] bg-[#fbfbfa]/90 dark:bg-[#111113]/90 backdrop-blur-md px-4 sm:px-6 py-4">
       <div className="max-w-3xl mx-auto">
-        <div className={clsx(
-          'flex items-end gap-2 bg-gray-50 dark:bg-gray-900 rounded-2xl border transition-all duration-150',
-          'border-gray-200 dark:border-gray-700',
-          'focus-within:border-brand-400 dark:focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900/30'
-        )}>
+        <div
+          className={clsx(
+            'flex items-end gap-2 bg-white dark:bg-[#18181b] rounded-xl border transition-all duration-150 shadow-xs',
+            'border-[#e5e5e0] dark:border-[#27272a]',
+            'focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/10'
+          )}
+        >
           {/* Textarea */}
           <textarea
             ref={textareaRef}
             value={value}
-            onChange={e => setValue(e.target.value)}
+            onChange={(e) => setValue(e.target.value)}
             onKeyDown={handleKey}
             rows={1}
-            placeholder="Ask Clario about HR policies..."
+            placeholder="Ask Clario about HR policies, leave, compensation, or benefits…"
             disabled={isLoading}
-            aria-label="Message input"
-            className="flex-1 bg-transparent resize-none py-3 pl-4 pr-2 text-sm text-gray-800 dark:text-gray-200
-              placeholder-gray-400 dark:placeholder-gray-600 outline-none leading-relaxed
-              disabled:opacity-50 max-h-40"
+            aria-label="Ask Clario a workplace policy question"
+            className="flex-1 bg-transparent resize-none py-3.5 pl-4 pr-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100
+              placeholder-zinc-400 dark:placeholder-zinc-500 outline-none leading-relaxed
+              disabled:opacity-50 max-h-44 font-sans"
           />
 
           {/* Send button */}
           <button
             onClick={handleSend}
             disabled={!value.trim() || isLoading}
-            aria-label="Send message"
+            aria-label="Submit question"
             className={clsx(
-              'mr-2 mb-2 p-2 rounded-xl transition-all duration-150 flex-shrink-0',
+              'mr-2 mb-2 p-2 rounded-lg transition-all duration-150 flex-shrink-0 cursor-pointer shadow-2xs',
               value.trim() && !isLoading
-                ? 'bg-gradient-to-br from-brand-600 to-violet-600 text-white shadow-sm hover:shadow-md active:scale-95'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white'
+                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border border-[#e5e5e0] dark:border-[#27272a] cursor-not-allowed'
             )}
           >
-            <Send size={15} />
+            <ArrowUp size={15} strokeWidth={2.5} />
           </button>
         </div>
 
-        <p className="text-center text-[10px] text-gray-400 dark:text-gray-600 mt-1.5">
-          Press <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-mono">Enter</kbd> to send
-          &nbsp;·&nbsp;
-          <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-mono">Shift+Enter</kbd> for new line
-        </p>
+        <div className="flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-500 mt-2 px-1 font-sans">
+          <span>Clario cites approved company documents</span>
+          <span className="hidden sm:inline">
+            <kbd className="px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 border border-[#e5e5e0] dark:border-[#27272a] rounded text-[10px] font-mono">
+              Return
+            </kbd>{' '}
+            to send ·{' '}
+            <kbd className="px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 border border-[#e5e5e0] dark:border-[#27272a] rounded text-[10px] font-mono">
+              Shift + Return
+            </kbd>{' '}
+            for new line
+          </span>
+        </div>
       </div>
     </div>
   )
