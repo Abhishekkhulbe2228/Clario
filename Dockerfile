@@ -3,21 +3,22 @@ FROM python:3.12-slim
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    HOME=/app/data \
+    HF_HOME=/app/data/huggingface
 
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir -r requirements.txt \
-    && python -c "import torch; assert torch.version.cuda is None, f'CUDA build detected: {torch.version.cuda}'; print('Verified CPU-only PyTorch:', torch.__version__)"
+    && pip install --no-cache-dir -r requirements.txt
 
 RUN addgroup --system clario \
     && adduser --system --ingroup clario clario
 
 COPY . .
 
-RUN mkdir -p /app/data /app/uploads \
+
+RUN mkdir -p /app/data/huggingface /app/uploads \
     && chown -R clario:clario /app
 
 USER clario
