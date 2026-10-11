@@ -1,4 +1,6 @@
 import logging
+import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,32 +15,44 @@ logger = logging.getLogger(__name__)
 
 configure_logging()
 settings = get_settings()
-init_db()
-try:
-    with SessionLocal() as db:
-        ensure_bootstrap_users(db)
-except Exception as e:
-    logger.warning("Could not run ensure_bootstrap_users on startup: %s", e)
 
-# Validate storage configuration on startup
-storage_service = get_storage_service()
-if settings.environment == "production" or settings.app_env == "production":
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    port = os.getenv("PORT", "10000")
+    logger.info("Initializing Clario backend (app_env=%s, port=%s)...", settings.app_env, port)
+
+    # 1. Initialize database tables and bootstrap users
     try:
-        storage_service.validate_configuration(check_bucket=True)
-        logger.info("Supabase Storage validated successfully for bucket '%s'", storage_service.bucket_name)
+        init_db()
+        with SessionLocal() as db:
+            ensure_bootstrap_users(db)
+        logger.info("Database initialized and bootstrap users checked.")
     except Exception as exc:
-        logger.critical("Fatal: Supabase Storage configuration validation failed on startup: %s", exc)
-        raise RuntimeError(f"Supabase Storage configuration failure: {exc}") from exc
-else:
-    if storage_service.is_configured():
-        logger.info("Supabase Storage configured for bucket '%s'", storage_service.bucket_name)
+        logger.warning("Database startup initialization issue: %s", exc)
+
+    # 2. Supabase Storage readiness check
+    storage_service = get_storage_service()
+    if settings.environment == "production" or settings.app_env == "production":
+        try:
+            storage_service.validate_configuration(check_bucket=True)
+            logger.info("Supabase Storage validated successfully for bucket '%s'", storage_service.bucket_name)
+        except Exception as exc:
+            logger.error("Supabase Storage configuration check issue on startup: %s", exc)
     else:
-        logger.warning(
-            "Supabase Storage credentials not configured. Document uploads will require SUPABASE_URL and SUPABASE_SECRET_KEY."
-        )
+        if storage_service.is_configured():
+            logger.info("Supabase Storage configured for bucket '%s'", storage_service.bucket_name)
+        else:
+            logger.warning(
+                "Supabase Storage credentials not configured. Document uploads will require SUPABASE_URL and SUPABASE_SECRET_KEY."
+            )
+
+    logger.info("Clario backend startup complete; ready to serve on port %s.", port)
+    yield
+    logger.info("Clario backend shutting down...")
 
 
-app = FastAPI(title=settings.app_name, version="1.0.0")
+app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
 
 
 # ── CORS ──────────────────────────────────────────────────────────────────────

@@ -8,7 +8,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements.txt \
+    && python -c "import torch; assert torch.version.cuda is None, f'CUDA build detected: {torch.version.cuda}'; print('Verified CPU-only PyTorch:', torch.__version__)"
 
 RUN addgroup --system clario \
     && adduser --system --ingroup clario clario

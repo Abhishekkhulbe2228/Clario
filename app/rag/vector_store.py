@@ -1,9 +1,10 @@
+import logging
 import time
-from pinecone import Pinecone , ServerlessSpec
-from langchain_huggingface import HuggingFaceEmbeddings
+from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 from app.core.config import get_settings
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
@@ -45,11 +46,14 @@ def get_embeddings():
     global _embeddings
 
     if _embeddings is None:
+        logger.info("Initializing HuggingFaceEmbeddings on CPU (model: %s)...", settings.embedding_model)
+        from langchain_huggingface import HuggingFaceEmbeddings
         _embeddings = HuggingFaceEmbeddings(
             model_name=settings.embedding_model,
             model_kwargs={"device": "cpu"},
             encode_kwargs={"normalize_embeddings": True},
         )
+        logger.info("HuggingFaceEmbeddings loaded successfully.")
 
     return _embeddings
 
